@@ -6,47 +6,51 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 load_dotenv(BASE_DIR / ".env")
-load_dotenv(BASE_DIR / ".en")
 
 SQLITE_DB_PATH = BASE_DIR / "database" / "finsaathi.db"
 
 
-class SQLiteCursorWrapper:
-    def __init__(self, cursor, dictionary=True):
+class GenericCursorWrapper:
+    def __init__(self, cursor, dictionary=True, is_postgres=False):
         self._cursor = cursor
         self.dictionary = dictionary
+        self.is_postgres = is_postgres
+        self._lastrowid = None
 
     @property
     def lastrowid(self):
-        return self._cursor.lastrowid
+        return getattr(self._cursor, "lastrowid", self._lastrowid)
 
     @property
     def rowcount(self):
-        return self._cursor.rowcount
+        return getattr(self._cursor, "rowcount", -1)
 
     def _convert_query(self, query):
         if not query:
             return query
-        # Replace %s with ? for sqlite parameter substitution
-        # Replace MySQL specific backticks or AUTO_INCREMENT if in DDL
-        converted = re.sub(r'(?<!%)(?:%%)*%s', '?', query)
-        converted = converted.replace('%%', '%')
-        return converted
+        if not self.is_postgres:
+            # Replace %s with ? for sqlite
+            converted = re.sub(r'(?<!%)(?:%%)*%s', '?', query)
+            converted = converted.replace('%%', '%')
+            return converted
+        return query
 
     def execute(self, query, params=None):
         sql = self._convert_query(query)
-        try:
-            if params is not None:
-                if isinstance(params, (list, tuple)):
-                    return self._cursor.execute(sql, params)
-                elif isinstance(params, dict):
-                    return self._cursor.execute(sql, params)
-                else:
-                    return self._cursor.execute(sql, (params,))
-            return self._cursor.execute(sql)
-        except Exception as e:
-            # Handle some MySQL vs SQLite syntax differences gracefully
-            raise e
+        if self.is_postgres and "RETURNING id" not in sql.upper() and sql.strip().upper().startswith("INSERT INTO"):
+            # If postgres insert, we can optionally append RETURNING id to capture lastrowid
+            pass
+
+        if params is not None:
+            if isinstance(params, (list, tuple)):
+                res = self._cursor.execute(sql, params)
+            elif isinstance(params, dict):
+                res = self._cursor.execute(sql, params)
+            else:
+                res = self._cursor.execute(sql, (params,))
+        else:
+            res = self._cursor.execute(sql)
+        return res
 
     def executemany(self, query, seq_of_params):
         sql = self._convert_query(query)
@@ -57,19 +61,41 @@ class SQLiteCursorWrapper:
         if row is None:
             return None
         if self.dictionary:
-            return dict(row)
+            if isinstance(row, dict):
+                return row
+            if hasattr(row, "keys"):
+                return dict(row)
+            if hasattr(self._cursor, "description") and self._cursor.description:
+                cols = [d[0] for d in self._cursor.description]
+                return dict(zip(cols, row))
         return row
 
     def fetchall(self):
         rows = self._cursor.fetchall()
+        if not rows:
+            return []
         if self.dictionary:
-            return [dict(r) for r in rows]
+            if isinstance(rows[0], dict):
+                return rows
+            if hasattr(rows[0], "keys"):
+                return [dict(r) for r in rows]
+            if hasattr(self._cursor, "description") and self._cursor.description:
+                cols = [d[0] for d in self._cursor.description]
+                return [dict(zip(cols, r)) for r in rows]
         return rows
 
     def fetchmany(self, size=None):
         rows = self._cursor.fetchmany(size)
+        if not rows:
+            return []
         if self.dictionary:
-            return [dict(r) for r in rows]
+            if isinstance(rows[0], dict):
+                return rows
+            if hasattr(rows[0], "keys"):
+                return [dict(r) for r in rows]
+            if hasattr(self._cursor, "description") and self._cursor.description:
+                cols = [d[0] for d in self._cursor.description]
+                return [dict(zip(cols, r)) for r in rows]
         return rows
 
     def close(self):
@@ -79,71 +105,25 @@ class SQLiteCursorWrapper:
             pass
 
 
-class SQLiteConnectionWrapper:
-    def __init__(self, raw_conn):
+class GenericConnectionWrapper:
+    def __init__(self, raw_conn, is_postgres=False):
         self._conn = raw_conn
-        self._conn.row_factory = sqlite3.Row
-
-        # Register MySQL compatibility functions in SQLite
-        try:
-            from datetime import date as d_date, datetime as dt_datetime
-
-            self._conn.create_function("CURDATE", 0, lambda: d_date.today().isoformat())
-            self._conn.create_function("NOW", 0, lambda: dt_datetime.now().isoformat())
-
-            def _sqlite_month(v):
-                if not v:
-                    return 0
-                s = str(v).strip()
-                if len(s) >= 7 and s[4] == "-":
-                    try:
-                        return int(s[5:7])
-                    except:
-                        pass
-                return 0
-
-            def _sqlite_year(v):
-                if not v:
-                    return 0
-                s = str(v).strip()
-                if len(s) >= 4:
-                    try:
-                        return int(s[:4])
-                    except:
-                        pass
-                return 0
-
-            def _sqlite_day(v):
-                if not v:
-                    return 0
-                s = str(v).strip()
-                if len(s) >= 10 and s[7] == "-":
-                    try:
-                        return int(s[8:10])
-                    except:
-                        pass
-                return 0
-
-            def _sqlite_date_format(v, fmt="%Y-%m"):
-                if not v:
-                    return ""
-                s = str(v).strip()
-                if "%Y-%m" in str(fmt):
-                    return s[:7]
-                elif "%Y" in str(fmt):
-                    return s[:4]
-                return s[:10]
-
-            self._conn.create_function("MONTH", 1, _sqlite_month)
-            self._conn.create_function("YEAR", 1, _sqlite_year)
-            self._conn.create_function("DAY", 1, _sqlite_day)
-            self._conn.create_function("DATE_FORMAT", 2, _sqlite_date_format)
-        except Exception:
-            pass
+        self.is_postgres = is_postgres
+        if not is_postgres and hasattr(self._conn, "row_factory"):
+            self._conn.row_factory = sqlite3.Row
 
     def cursor(self, dictionary=True, **kwargs):
+        if self.is_postgres:
+            try:
+                import psycopg2.extras
+                cur = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor if dictionary else None)
+                return GenericCursorWrapper(cur, dictionary=dictionary, is_postgres=True)
+            except Exception:
+                cur = self._conn.cursor()
+                return GenericCursorWrapper(cur, dictionary=dictionary, is_postgres=True)
+
         cur = self._conn.cursor()
-        return SQLiteCursorWrapper(cur, dictionary=dictionary)
+        return GenericCursorWrapper(cur, dictionary=dictionary, is_postgres=False)
 
     def commit(self):
         return self._conn.commit()
@@ -271,7 +251,17 @@ def init_sqlite_schema(conn):
 
 
 def get_connection():
-    # 1. Try MySQL if configured
+    # 1. Try Supabase / PostgreSQL via DATABASE_URL if configured
+    db_url = os.getenv("DATABASE_URL") or os.getenv("SUPABASE_DB_URL")
+    if db_url:
+        try:
+            import psycopg2
+            conn = psycopg2.connect(db_url)
+            return GenericConnectionWrapper(conn, is_postgres=True)
+        except Exception as e:
+            print(f"⚠️ PostgreSQL connection via DATABASE_URL failed: {e}")
+
+    # 2. Try MySQL if configured
     mysql_host = os.getenv("DB_HOST", "127.0.0.1")
     mysql_port = int(os.getenv("DB_PORT", "3306"))
     mysql_user = os.getenv("DB_USER", "root")
@@ -293,12 +283,12 @@ def get_connection():
     except Exception:
         pass
 
-    # 2. Transparent SQLite Fallback
+    # 3. Transparent SQLite Fallback (creates on-demand if no remote DB yet)
     try:
         SQLITE_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
         raw_conn = sqlite3.connect(str(SQLITE_DB_PATH), check_same_thread=False)
         init_sqlite_schema(raw_conn)
-        return SQLiteConnectionWrapper(raw_conn)
+        return GenericConnectionWrapper(raw_conn, is_postgres=False)
     except Exception as e:
-        print(f"❌ SQLite initialization failed: {e}")
+        print(f"❌ SQLite fallback initialization failed: {e}")
         return None
