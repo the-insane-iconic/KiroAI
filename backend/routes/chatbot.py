@@ -32,7 +32,7 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 
 GROQ_MODEL = os.getenv(
     "GROQ_MODEL",
-    "llama-3.3-70b-versatile",
+    "qwen/qwen3.6-27b",
 ).strip()
 
 groq_client = None

@@ -1,5 +1,10 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import {
+  registerWithEmail,
+  loginWithGoogle,
+  isFirebaseConfigured,
+} from "../services/firebase";
 
 const API_URL = (
   import.meta.env.VITE_BACKEND_URL?.trim() ||
@@ -38,28 +43,99 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
+      if (isFirebaseConfigured()) {
+        const userCredential = await registerWithEmail(email.trim(), password, name.trim());
+        const fbUser = userCredential.user;
+
+        const userData = {
+          email: fbUser.email,
           name: name.trim(),
-          email: email.trim(),
-          password,
-          termsAccepted: true,
-        }),
-      });
+          uid: fbUser.uid,
+        };
 
-      const data = await response.json().catch(() => ({}));
+        localStorage.setItem("user", JSON.stringify(userData));
+        localStorage.setItem("user_id", fbUser.uid);
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || data.error || "Could not create your account.");
+        // Optional backend record registration
+        try {
+          await fetch(`${API_URL}/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              name: name.trim(),
+              email: email.trim(),
+              password,
+              termsAccepted: true,
+            }),
+          });
+        } catch {
+          // Firebase registration is complete
+        }
+
+        navigate("/");
+      } else {
+        // Fallback to backend API
+        const response = await fetch(`${API_URL}/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            name: name.trim(),
+            email: email.trim(),
+            password,
+            termsAccepted: true,
+          }),
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || data.error || "Could not create your account.");
+        }
+
+        navigate("/login");
       }
-
-      navigate("/login");
     } catch (err) {
       console.error("REGISTER ERROR:", err);
-      setError(err.message || "Unable to register.");
+      let msg = err.message || "Unable to register.";
+      if (err.code === "auth/email-already-in-use") {
+        msg = "This email is already registered. Please sign in instead.";
+      } else if (err.code === "auth/weak-password") {
+        msg = "Password is too weak. Please use at least 6 characters.";
+      }
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
+    setError("");
+    setLoading(true);
+
+    try {
+      if (isFirebaseConfigured()) {
+        const result = await loginWithGoogle();
+        const fbUser = result.user;
+
+        const userData = {
+          email: fbUser.email,
+          name: fbUser.displayName || fbUser.email?.split("@")[0] || "User",
+          uid: fbUser.uid,
+          photoURL: fbUser.photoURL,
+        };
+
+        localStorage.setItem("user", JSON.stringify(userData));
+        localStorage.setItem("user_id", fbUser.uid);
+
+        navigate("/");
+      } else {
+        navigate("/login");
+      }
+    } catch (err) {
+      console.error("GOOGLE SIGNUP ERROR:", err);
+      setError(err.message || "Google registration failed.");
     } finally {
       setLoading(false);
     }
@@ -101,7 +177,7 @@ export default function Register() {
               marginBottom: "12px",
             }}
           >
-            A
+            B
           </div>
           <h1
             style={{
@@ -114,13 +190,14 @@ export default function Register() {
               letterSpacing: "-0.5px",
             }}
           >
-            Amivest AI
+            Create Your Account
           </h1>
           <p style={{ margin: "4px 0 0", color: "#94A3B8", fontSize: "12px" }}>
-            Create your Rural & MSME Financial Co-Pilot account
+            Get started with BizzAI / AmiVest in seconds
           </p>
         </div>
 
+        {/* Error Alert */}
         {error && <div style={errorStyle}>⚠️ {error}</div>}
 
         <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
@@ -129,10 +206,9 @@ export default function Register() {
             <input
               style={inputStyle}
               type="text"
-              placeholder="Deepanshu Sharma"
+              placeholder="e.g. Ramesh Kumar"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              autoComplete="name"
               required
             />
           </div>
@@ -145,267 +221,258 @@ export default function Register() {
               placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
               required
             />
           </div>
 
           <div>
-            <label style={labelStyle}>Create Password</label>
+            <label style={labelStyle}>Password (min. 6 characters)</label>
             <input
               style={inputStyle}
               type="password"
-              placeholder="At least 6 characters"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete="new-password"
               required
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={buttonStyle}
-          >
-            {loading ? "Creating Account..." : "Create Account →"}
+          <button type="submit" disabled={loading} style={buttonStyle}>
+            {loading ? "Creating account..." : "Sign Up with Firebase →"}
           </button>
         </form>
 
-        {/* Legal Disclaimer */}
-        <p style={termsLabelStyle}>
-          By registering, you accept our{" "}
-          <button type="button" onClick={() => setLegalModal("terms")} style={legalButtonStyle}>
-            Terms of Service
-          </button>{" "}
-          and{" "}
-          <button type="button" onClick={() => setLegalModal("privacy")} style={legalButtonStyle}>
-            Privacy Policy
-          </button>
-          .
-        </p>
+        {/* Divider */}
+        <div style={dividerContainerStyle}>
+          <div style={dividerLineStyle} />
+          <span style={dividerTextStyle}>OR</span>
+          <div style={dividerLineStyle} />
+        </div>
 
-        <p style={loginTextStyle}>
+        <button
+          type="button"
+          onClick={handleGoogleSignUp}
+          disabled={loading}
+          style={googleBtnStyle}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" style={{ marginRight: "10px" }}>
+            <path
+              fill="#4285F4"
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+            />
+            <path
+              fill="#EA4335"
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+            />
+          </svg>
+          Continue with Google
+        </button>
+
+        {/* Bottom Switcher */}
+        <p style={{ textAlign: "center", marginTop: "24px", color: "#94A3B8", fontSize: "13px" }}>
           Already have an account?{" "}
-          <Link to="/login" style={linkStyle}>
-            Sign In
+          <Link
+            to="/login"
+            style={{ color: "#2DD4BF", fontWeight: "600", textDecoration: "none" }}
+          >
+            Sign in
           </Link>
         </p>
+
+        {/* Legal Disclaimer */}
+        <div style={{ textAlign: "center", marginTop: "18px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "14px" }}>
+          <p style={{ margin: 0, color: "#64748B", fontSize: "11px" }}>
+            By creating an account, you agree to our{" "}
+            <button
+              type="button"
+              onClick={() => setLegalModal("terms")}
+              style={{ background: "none", border: "none", color: "#94A3B8", textDecoration: "underline", fontSize: "11px", cursor: "pointer", padding: 0 }}
+            >
+              Terms of Service
+            </button>{" "}
+            and{" "}
+            <button
+              type="button"
+              onClick={() => setLegalModal("privacy")}
+              style={{ background: "none", border: "none", color: "#94A3B8", textDecoration: "underline", fontSize: "11px", cursor: "pointer", padding: 0 }}
+            >
+              Privacy Policy
+            </button>
+            .
+          </p>
+        </div>
       </div>
 
-      {legalModal && <LegalModal type={legalModal} onClose={() => setLegalModal(null)} />}
+      {/* MODAL POPUPS */}
+      {legalModal && (
+        <div style={modalBackdropStyle} onClick={() => setLegalModal(null)}>
+          <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h2 style={{ margin: 0, fontSize: "18px", color: "#F8FAFC" }}>
+                {legalModal === "terms" ? "Terms of Service" : "Privacy Policy"}
+              </h2>
+              <button
+                onClick={() => setLegalModal(null)}
+                style={{ background: "none", border: "none", color: "#94A3B8", fontSize: "20px", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ color: "#CBD5E1", fontSize: "13px", lineHeight: "1.6", maxHeight: "320px", overflowY: "auto" }}>
+              {legalModal === "terms" ? (
+                <p>
+                  Welcome to BizzAI. By accessing or using our financial analysis, business launchpad, and co-pilot tools, you agree to comply with applicable regulations and utilize suggestions for educational and advisory reference.
+                </p>
+              ) : (
+                <p>
+                  Your privacy and security are our highest priority. Authentication is securely managed with Firebase. We do not sell your personal financial records or credentials.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function LegalModal({ type, onClose }) {
-  const isTerms = type === "terms";
-
-  return (
-    <div style={modalOverlayStyle} onClick={onClose}>
-      <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-        <div style={modalHeaderStyle}>
-          <h3 style={{ margin: 0, color: "#2DD4BF", fontSize: "16px" }}>
-            {isTerms ? "Terms & Conditions" : "Privacy Policy"}
-          </h3>
-          <button type="button" onClick={onClose} style={closeButtonStyle}>
-            ✕
-          </button>
-        </div>
-
-        <div style={modalContentStyle}>
-          {isTerms ? (
-            <>
-              <h4 style={{ color: "#F8FAFC", margin: "12px 0 4px" }}>1. Acceptance</h4>
-              <p>By using Amivest AI, you agree to these Terms & Conditions for financial guidance, loan eligibility tools, and feasibility intelligence.</p>
-
-              <h4 style={{ color: "#F8FAFC", margin: "12px 0 4px" }}>2. Advisory Scope</h4>
-              <p>Amivest AI provides educational and data-driven insights. Official loan sanctions are subject to government nodal agencies and banking parameters.</p>
-
-              <h4 style={{ color: "#F8FAFC", margin: "12px 0 4px" }}>3. Data Privacy</h4>
-              <p>Financial records, PIN lookups, and feasibility evaluations are encrypted and strictly scoped to your authorized user session.</p>
-            </>
-          ) : (
-            <>
-              <h4 style={{ color: "#F8FAFC", margin: "12px 0 4px" }}>1. Data Encryption</h4>
-              <p>All bank statement extractions, loan inputs, and session credentials are encrypted in transit and at rest.</p>
-
-              <h4 style={{ color: "#F8FAFC", margin: "12px 0 4px" }}>2. Zero Telemetry Leaks</h4>
-              <p>Your business idea, financial logs, and personal identity numbers are never sold or shared with unverified external third parties.</p>
-            </>
-          )}
-        </div>
-
-        <button type="button" onClick={onClose} style={modalDoneButtonStyle}>
-          Understood
-        </button>
-      </div>
-    </div>
-  );
-}
-
+/* =========================================================
+   INLINE STYLES
+   ========================================================= */
 const containerStyle = {
   minHeight: "100vh",
-  background: "var(--bg)",
+  background: "linear-gradient(180deg, #090D16 0%, #0F172A 100%)",
   display: "flex",
-  justifyContent: "center",
   alignItems: "center",
-  padding: "24px 16px",
-  boxSizing: "border-box",
+  justifyContent: "center",
+  padding: "20px",
   position: "relative",
   overflow: "hidden",
   fontFamily: "Inter, system-ui, -apple-system, sans-serif",
-  transition: "all 0.28s ease",
 };
 
 const cardStyle = {
   width: "100%",
-  maxWidth: "440px",
-  background: "var(--surface)",
-  padding: "36px 32px",
-  borderRadius: "24px",
-  border: "1px solid var(--border)",
-  boxShadow: "var(--shadow-md)",
+  maxWidth: "420px",
+  background: "rgba(15, 23, 42, 0.75)",
   backdropFilter: "blur(20px)",
-  boxSizing: "border-box",
+  border: "1px solid rgba(255, 255, 255, 0.08)",
+  borderRadius: "20px",
+  padding: "32px",
+  boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.6)",
   position: "relative",
-  zIndex: 2,
-  transition: "all 0.28s ease",
+  zIndex: 1,
 };
 
 const labelStyle = {
   display: "block",
-  fontSize: "11.5px",
-  fontWeight: "700",
-  color: "var(--muted)",
+  color: "#94A3B8",
+  fontSize: "12px",
+  fontWeight: "500",
   marginBottom: "6px",
 };
 
 const inputStyle = {
   width: "100%",
-  padding: "12px 14px",
-  borderRadius: "12px",
-  border: "1px solid var(--border)",
-  background: "var(--surface-soft)",
-  color: "var(--text-h)",
-  fontSize: "14px",
-  boxSizing: "border-box",
+  padding: "11px 14px",
+  background: "rgba(2, 6, 23, 0.6)",
+  border: "1px solid rgba(255, 255, 255, 0.1)",
+  borderRadius: "10px",
+  color: "#F8FAFC",
+  fontSize: "13px",
   outline: "none",
-  transition: "all 0.2s ease",
+  boxSizing: "border-box",
 };
 
 const buttonStyle = {
   width: "100%",
-  padding: "13px",
-  background: "linear-gradient(90deg, var(--primary-accent), var(--primary))",
-  color: "#FFFFFF",
+  padding: "12px",
+  background: "linear-gradient(90deg, #0D9488, #06B6D4)",
   border: "none",
-  borderRadius: "12px",
-  fontSize: "13.5px",
-  fontWeight: "700",
+  borderRadius: "10px",
+  color: "#FFFFFF",
+  fontSize: "13px",
+  fontWeight: "600",
   cursor: "pointer",
-  boxShadow: "0 4px 16px rgba(13, 148, 136, 0.4)",
-  transition: "transform 0.15s ease",
+  boxShadow: "0 4px 14px rgba(13, 148, 136, 0.4)",
   marginTop: "4px",
 };
 
-const errorStyle = {
-  background: "rgba(239, 68, 68, 0.14)",
-  border: "1px solid rgba(239, 68, 68, 0.35)",
-  color: "#EF4444",
-  padding: "11px 14px",
+const googleBtnStyle = {
+  width: "100%",
+  padding: "11px",
+  background: "rgba(30, 41, 59, 0.8)",
+  border: "1px solid rgba(255, 255, 255, 0.1)",
   borderRadius: "10px",
-  marginBottom: "16px",
-  fontSize: "12.5px",
-};
-
-const termsLabelStyle = {
-  marginTop: "20px",
-  color: "var(--muted)",
-  fontSize: "11px",
-  textAlign: "center",
-  lineHeight: "1.5",
-};
-
-const legalButtonStyle = {
-  background: "none",
-  border: "none",
-  color: "var(--primary-accent)",
-  fontSize: "11px",
+  color: "#F8FAFC",
+  fontSize: "13px",
+  fontWeight: "500",
   cursor: "pointer",
-  fontWeight: "600",
-  padding: 0,
-  textDecoration: "underline",
-};
-
-const loginTextStyle = {
-  marginTop: "16px",
-  textAlign: "center",
-  color: "var(--muted)",
-  fontSize: "12.5px",
-};
-
-const linkStyle = {
-  color: "var(--primary-accent)",
-  fontWeight: "700",
-  textDecoration: "none",
-  marginLeft: "4px",
-};
-
-const modalOverlayStyle = {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(0, 0, 0, 0.65)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  zIndex: 10000,
-  padding: "20px",
-  backdropFilter: "blur(8px)",
+  transition: "background 0.2s ease",
 };
 
-const modalStyle = {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: "20px",
-  padding: "24px",
-  maxWidth: "460px",
-  width: "100%",
-  color: "var(--text)",
-  boxShadow: "var(--shadow-md)",
-};
-
-const modalHeaderStyle = {
+const dividerContainerStyle = {
   display: "flex",
-  justifyContent: "space-between",
   alignItems: "center",
-  paddingBottom: "12px",
-  borderBottom: "1px solid var(--border)",
+  margin: "18px 0",
 };
 
-const closeButtonStyle = {
-  background: "transparent",
-  border: "none",
-  color: "var(--muted)",
-  fontSize: "16px",
-  cursor: "pointer",
+const dividerLineStyle = {
+  flex: 1,
+  height: "1px",
+  background: "rgba(255, 255, 255, 0.08)",
+};
+
+const dividerTextStyle = {
+  color: "#64748B",
+  fontSize: "10px",
+  fontWeight: "600",
+  letterSpacing: "0.5px",
+  padding: "0 10px",
+};
+
+const errorStyle = {
+  background: "rgba(239, 68, 68, 0.1)",
+  border: "1px solid rgba(239, 68, 68, 0.2)",
+  borderRadius: "8px",
+  padding: "10px 12px",
+  color: "#FCA5A5",
+  fontSize: "12px",
+  marginBottom: "14px",
+};
+
+const modalBackdropStyle = {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  background: "rgba(0,0,0,0.7)",
+  backdropFilter: "blur(6px)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 100,
+  padding: "20px",
 };
 
 const modalContentStyle = {
-  fontSize: "12.5px",
-  lineHeight: "1.6",
-  color: "var(--muted)",
-  margin: "14px 0",
-};
-
-const modalDoneButtonStyle = {
+  background: "#0F172A",
+  border: "1px solid rgba(255,255,255,0.1)",
+  borderRadius: "16px",
+  padding: "24px",
+  maxWidth: "480px",
   width: "100%",
-  padding: "10px",
-  borderRadius: "10px",
-  border: "none",
-  background: "var(--primary)",
-  color: "#fff",
-  fontWeight: "700",
-  fontSize: "12.5px",
-  cursor: "pointer",
+  boxShadow: "0 25px 50px -12px rgba(0,0,0,0.8)",
 };

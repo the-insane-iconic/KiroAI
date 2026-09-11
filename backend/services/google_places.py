@@ -1,9 +1,10 @@
 import os
 import requests
-from datetime import datetime, timezone
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv("/Users/amityadav/finsaathi-ai/backend/.env")
+BASE_DIR = Path(__file__).resolve().parents[1]
+load_dotenv(BASE_DIR / ".env")
 
 GOOGLE_PLACES_URL = "https://places.googleapis.com/v1/places:searchText"
 
