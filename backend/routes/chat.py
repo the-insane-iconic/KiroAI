@@ -1,5 +1,5 @@
 """
-AmiVest AI Financial Co-Pilot - Intelligent Chatbot with Full Backend Access
+Kiro AI Financial Co-Pilot - Intelligent Chatbot with Full Backend Access
 
 Features:
 - Fast deterministic command execution (add expense, add income, delete transaction, add goal, set budget)
@@ -42,7 +42,7 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 load_dotenv(BASE_DIR / ".env")
 load_dotenv(BASE_DIR.parent / ".env")
 
-logger = logging.getLogger("amivest.chat")
+logger = logging.getLogger("kiro.chat")
 
 if not logger.handlers:
     handler = logging.StreamHandler()
@@ -792,7 +792,7 @@ def analyze_intent_with_llm(user_message: str, user_name: str = "User") -> dict[
     if not groq_client:
         return {"action": "chat"}
 
-    prompt = f"""You are an intent parser for AmiVest Personal Finance AI.
+    prompt = f"""You are an intent parser for Kiro AI Personal Finance AI.
 Analyze the user's message and output a single JSON object.
 
 Allowed actions:
@@ -854,7 +854,7 @@ def execute_chat_with_context(user_id: int, user_message: str, history: list[dic
     recent_tx = financial.get("transactions", [])[:5]
     goals = financial.get("goals", [])[:5]
 
-    system_prompt = f"""You are AmiVest AI, an empathetic, smart, and proactive Indian personal finance co-pilot.
+    system_prompt = f"""You are Kiro AI, an empathetic, smart, and proactive Indian personal finance co-pilot.
 User's Name: {user_name}
 
 LIVE DATABASE FINANCIAL CONTEXT:

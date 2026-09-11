@@ -54,7 +54,7 @@ function ChatBot({
     return [
       {
         who: "ai",
-        text: `👋 Namaste ${name}! Main AmiVest AI financial co-pilot hoon.\n\nMain aapke backend database se directly connected hoon:\n• 💸 **Kharche jod sakte hain:** 'Spent ₹450 on lunch'\n• 💵 **Income record karein:** 'Salary ₹40,000 received'\n• 🗑️ **Transactions delete karein:** 'Delete last transaction'\n• 🎯 **Goals banayein:** 'Save ₹50,000 for emergency'\n• 📋 **Personalized plan:** 'Plan my finances'\n\nAap Hindi, English ya Hinglish me baat kar sakte hain! 💰`,
+        text: `👋 Namaste ${name}! Main Kiro AI financial co-pilot hoon.\n\nMain aapke backend database se directly connected hoon:\n• 💸 **Kharche jod sakte hain:** 'Spent ₹450 on lunch'\n• 💵 **Income record karein:** 'Salary ₹40,000 received'\n• 🗑️ **Transactions delete karein:** 'Delete last transaction'\n• 🎯 **Goals banayein:** 'Save ₹50,000 for emergency'\n• 📋 **Personalized plan:** 'Plan my finances'\n\nAap Hindi, English ya Hinglish me baat kar sakte hain! 💰`,
       },
     ];
   });
@@ -127,7 +127,7 @@ function ChatBot({
 
         if (fetchedList.length >= 0) {
           setLocalTransactions(fetchedList);
-          localStorage.setItem("amivest_transactions", JSON.stringify(fetchedList));
+          localStorage.setItem("kiro_transactions", JSON.stringify(fetchedList));
           localStorage.setItem("transactions", JSON.stringify(fetchedList));
 
           if (propSetTransactions) {
@@ -284,7 +284,7 @@ function ChatBot({
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
         <div>
           <h1 style={{ fontSize: "22px", fontWeight: "bold", color: "var(--text-h)", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
-            <span>🤖</span> AmiVest AI Financial Assistant
+            <span>🤖</span> Kiro AI Financial Assistant
           </h1>
           <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "3px" }}>
             Personalized co-pilot with direct access to your financial ledger & goals
@@ -361,7 +361,7 @@ function ChatBot({
                 ✦
               </div>
               <div>
-                <div style={{ fontWeight: "700", fontSize: "14px", color: "var(--text-h)" }}>AmiVest AI Co-Pilot</div>
+                <div style={{ fontWeight: "700", fontSize: "14px", color: "var(--text-h)" }}>Kiro AI Co-Pilot</div>
                 <div style={{ fontSize: "11px", color: "#10B981", display: "flex", alignItems: "center", gap: "4px" }}>
                   <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#10B981" }} />
                   Connected to Database • Live Mode
@@ -525,7 +525,7 @@ function ChatBot({
                     gap: "8px",
                   }}
                 >
-                  <span className="av-pulse">⏳</span> AmiVest AI is accessing backend & processing...
+                  <span className="av-pulse">⏳</span> Kiro AI is accessing backend & processing...
                 </div>
               </div>
             )}
@@ -692,7 +692,7 @@ function ChatBot({
           </div>
 
           <div style={{ borderTop: "1px solid var(--border)", paddingTop: "12px", color: "var(--muted)", fontSize: "11px", textAlign: "center" }}>
-            AmiVest AI • Backend Integrated Engine
+            Kiro AI • Backend Integrated Engine
           </div>
         </div>
       </div>

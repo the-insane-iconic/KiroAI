@@ -46,7 +46,7 @@ function RefundPolicy() {
         <h2 style={{ color: "#14B8A6" }}>1. Introduction</h2>
 
         <p>
-          Thank you for choosing <strong>Amivest AI</strong>. We aim to provide
+          Thank you for choosing <strong>Kiro AI</strong>. We aim to provide
           reliable AI-powered financial tools and premium services. Please read
           this Refund Policy carefully before purchasing any subscription or
           paid service.
@@ -65,7 +65,7 @@ function RefundPolicy() {
         <ul>
           <li>Duplicate payment for the same subscription.</li>
           <li>Payment was successful but Premium access was not activated.</li>
-          <li>Technical issues caused by Amivest AI that permanently prevent access.</li>
+          <li>Technical issues caused by Kiro AI that permanently prevent access.</li>
         </ul>
 
         <h2 style={{ color: "#14B8A6" }}>4. Non-Refundable Cases</h2>
@@ -120,7 +120,7 @@ function RefundPolicy() {
           <h3 style={{ color: "#14B8A6" }}>Support</h3>
 
           <p>
-            📧 <strong>Email:</strong> amivest.support@gmail.com
+            📧 <strong>Email:</strong> support@kiroai.io
           </p>
 
           <p>
@@ -139,7 +139,7 @@ function RefundPolicy() {
         </h2>
 
         <p>
-          Amivest AI reserves the right to update or modify this Refund Policy
+          Kiro AI reserves the right to update or modify this Refund Policy
           at any time. Any changes will become effective immediately after being
           published on this page.
         </p>
@@ -157,7 +157,7 @@ function RefundPolicy() {
             color: "#94A3B8",
           }}
         >
-          © 2026 Amivest AI. All Rights Reserved.
+          © 2026 Kiro AI. All Rights Reserved.
         </p>
       </div>
     </div>

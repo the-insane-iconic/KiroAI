@@ -244,7 +244,7 @@ function YourPlanSection({ transactions, onUsePlan, localizeCurrency }) {
       <div style={{ ...inlineStyles.cardLayout, textAlign: "center", padding: "60px 20px" }}>
         <h3 style={{ marginTop: 0, fontSize: "20px" }}>Transactional Ledger Scan Deficit</h3>
         <p style={{ color: THEME.textMuted, maxWidth: "520px", margin: "12px auto 0 auto", fontSize: "14px", lineHeight: "1.6" }}>
-          Import your structural bank accounts statement from the core Dashboard. FinSaathi parses your real ledger cashflow metrics to compute exactly how much you can allocate without exhausting daily capital safety.
+          Import your structural bank accounts statement from the core Dashboard. Kiro AI parses your real ledger cashflow metrics to compute exactly how much you can allocate without exhausting daily capital safety.
         </p>
       </div>
     );
@@ -372,7 +372,7 @@ export default function IntegratedWealthDashboard({ transactions = [] }) {
         {/* Module Master Banner Branding */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", borderBottom: `1px solid ${THEME.borderLight}`, paddingBottom: "24px", marginBottom: "32px", flexWrap: "wrap", gap: "16px" }}>
           <div>
-            <div style={{ color: THEME.statusGreen, fontSize: "11px", fontWeight: "800", letterSpacing: "0.15em", marginBottom: "6px" }}>FINSAATHI COMPREHENSIVE SUITE</div>
+            <div style={{ color: THEME.statusGreen, fontSize: "11px", fontWeight: "800", letterSpacing: "0.15em", marginBottom: "6px" }}>KIRO AI COMPREHENSIVE SUITE</div>
             <h1 style={{ margin: 0, fontSize: "30px", fontWeight: "900", letterSpacing: "-0.03em" }}>Unified Wealth Management Architecture</h1>
           </div>
           

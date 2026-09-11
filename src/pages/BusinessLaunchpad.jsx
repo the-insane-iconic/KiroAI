@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 // Local storage keys
-const STORAGE_KEY = "amivest_launchpad_data";
-const TASKS_KEY = "amivest_launchpad_tasks";
+const STORAGE_KEY = "kiro_launchpad_data";
+const TASKS_KEY = "kiro_launchpad_tasks";
 
 const INDUSTRIES = [
   "Food & Cafe / Quick Bites",

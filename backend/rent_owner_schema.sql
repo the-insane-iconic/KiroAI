@@ -1,5 +1,5 @@
 -- ============================================================
--- AMIVEST RENT OWNER DATABASE
+-- KIRO AI RENT OWNER DATABASE
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS rent_owners (

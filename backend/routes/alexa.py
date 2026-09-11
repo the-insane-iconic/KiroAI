@@ -1861,7 +1861,7 @@ def alexa_session():
 def alexa_health():
     return jsonify({
         "success": True,
-        "service": "AmiVest Alexa Pro",
+        "service": "Kiro Alexa Pro",
         "status": "ready",
     })
 

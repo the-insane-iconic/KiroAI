@@ -26,7 +26,7 @@ function PrivacyPolicy() {
       <div style={card}>
         <h3 style={h3}>What we collect</h3>
         <p style={p}>
-          When you use Amivest AI, we collect the information you provide directly —
+          When you use Kiro AI, we collect the information you provide directly —
           your name, email, and the bank statements or transaction data you choose to
           import — along with basic usage data such as pages visited and features used,
           to help us improve the product.
@@ -81,7 +81,7 @@ function PrivacyPolicy() {
       <div style={card}>
         <h3 style={h3}>Contact</h3>
         <p style={p}>
-          Questions about this policy? Reach us at privacy@amivest.ai.
+          Questions about this policy? Reach us at privacy@kiroai.io.
         </p>
       </div>
     </div>

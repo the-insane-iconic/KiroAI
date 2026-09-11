@@ -26,7 +26,7 @@ function Terms() {
       <div style={card}>
         <h3 style={h3}>1. Acceptance of terms</h3>
         <p style={p}>
-          By creating an account or using Amivest AI, you agree to these Terms of
+          By creating an account or using Kiro AI, you agree to these Terms of
           Service. If you don't agree, please don't use the service.
         </p>
       </div>
@@ -34,7 +34,7 @@ function Terms() {
       <div style={card}>
         <h3 style={h3}>2. What the service does</h3>
         <p style={p}>
-          Amivest AI helps you understand your finances by importing bank statements,
+          Kiro AI helps you understand your finances by importing bank statements,
           categorizing transactions, and answering questions about your spending, saving,
           and financial goals through text and voice.
         </p>
@@ -43,7 +43,7 @@ function Terms() {
       <div style={card}>
         <h3 style={h3}>3. Not financial advice</h3>
         <p style={p}>
-          Amivest AI provides general information and educational content, not licensed
+          Kiro AI provides general information and educational content, not licensed
           financial, investment, tax, or legal advice. Decisions about investments, loans,
           or taxes are yours to make, ideally with a qualified professional. See our
           Disclaimer for more detail.
@@ -79,7 +79,7 @@ function Terms() {
       <div style={card}>
         <h3 style={h3}>7. Limitation of liability</h3>
         <p style={p}>
-          Amivest AI is provided "as is." To the fullest extent permitted by law, we are
+          Kiro AI is provided "as is." To the fullest extent permitted by law, we are
           not liable for financial decisions made based on information from the service.
         </p>
       </div>
@@ -95,7 +95,7 @@ function Terms() {
       <div style={card}>
         <h3 style={h3}>9. Contact</h3>
         <p style={p}>
-          Questions about these terms? Reach us at legal@amivest.ai.
+          Questions about these terms? Reach us at legal@kiroai.io.
         </p>
       </div>
     </div>

@@ -1,5 +1,5 @@
 # ============================================================
-# AMIVEST AI - MAIN FLASK APPLICATION
+# KIRO AI - MAIN FLASK APPLICATION
 # ============================================================
 
 import os
@@ -58,7 +58,7 @@ PORT = int(
 
 SECRET_KEY = os.getenv(
     "SECRET_KEY",
-    "amivest-development-secret-key"
+    "kiro-development-secret-key"
 )
 
 
@@ -72,7 +72,7 @@ app.config["SECRET_KEY"] = SECRET_KEY
 
 app.config["SESSION_COOKIE_NAME"] = os.getenv(
     "SESSION_COOKIE_NAME",
-    "amivest_session"
+    "kiro_session"
 )
 
 app.config["SESSION_COOKIE_HTTPONLY"] = True
@@ -1141,7 +1141,7 @@ def home():
         "success": True,
 
         "name":
-            "Amivest AI",
+            "Kiro AI",
 
         "message":
             "Backend Running Successfully",
@@ -1243,7 +1243,7 @@ def health():
 
 
 # ============================================================
-# AMIVEST MODES
+# KIRO AI MODES
 # ============================================================
 
 @app.route(
@@ -1263,7 +1263,7 @@ def app_modes():
                     "finance",
 
                 "name":
-                    "AmiVest Finance",
+                    "Kiro AI Finance",
 
                 "path":
                     "/dashboard",
@@ -1332,7 +1332,7 @@ def app_modes():
                     "business",
 
                 "name":
-                    "AmiVest Business",
+                    "Kiro AI Business",
 
                 "path":
                     "/business",
@@ -1618,7 +1618,7 @@ def alexa_status():
             True,
 
         "service":
-            "AmiVest Alexa Pro",
+            "Kiro Alexa Pro",
 
         "status":
             (
@@ -1705,7 +1705,7 @@ def native_tts():
         if sys.platform == "darwin":
 
             temp_dir = tempfile.mkdtemp(
-                prefix="amivest_tts_"
+                prefix="kiro_tts_"
             )
 
             aiff_path = os.path.join(
@@ -1828,7 +1828,7 @@ def native_tts():
                         as_attachment=False,
 
                         download_name=
-                            "amivest-speech.wav",
+                            "kiro-speech.wav",
 
                         max_age=0,
 
@@ -1920,7 +1920,7 @@ def native_tts():
             as_attachment=False,
 
             download_name=
-                "amivest-speech.mp3",
+                "kiro-speech.mp3",
 
             max_age=0,
 
@@ -2242,7 +2242,7 @@ if __name__ == "__main__":
     )
 
     print(
-        "          AMIVEST AI BACKEND"
+        "          KIRO AI BACKEND"
     )
 
     print(

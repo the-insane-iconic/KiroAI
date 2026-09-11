@@ -147,7 +147,7 @@ function Navbar() {
                "Dashboard"}
             </div>
             <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "2px" }}>
-              AmiVest · Financial Co-Pilot
+              Kiro AI · Financial Co-Pilot
             </div>
           </div>
         </div>
@@ -197,7 +197,7 @@ function Navbar() {
 
               <div style={{ textAlign: "left" }}>
                 <div style={{ fontWeight: "800", fontSize: "12px", color: "var(--text-h)", lineHeight: 1.1 }}>
-                  AmiVest
+                  Kiro AI
                 </div>
                 <div
                   style={{
@@ -535,7 +535,7 @@ function Navbar() {
                       onClick={() => {
                         setLanguage("English");
                         localStorage.setItem("language", "English");
-                        localStorage.setItem("amivest_alexa_language", "en");
+                        localStorage.setItem("kiro_alexa_language", "en");
                       }}
                       style={{
                         flex: 1,
@@ -556,7 +556,7 @@ function Navbar() {
                       onClick={() => {
                         setLanguage("Hindi");
                         localStorage.setItem("language", "Hindi");
-                        localStorage.setItem("amivest_alexa_language", "hi");
+                        localStorage.setItem("kiro_alexa_language", "hi");
                       }}
                       style={{
                         flex: 1,

@@ -24,7 +24,7 @@ export default function UserProfileMenu() {
     user?.name ||
     user?.username ||
     user?.full_name ||
-    "Amit Yadav";
+    "Founder";
 
   const email =
     user?.email ||
@@ -279,7 +279,7 @@ export default function UserProfileMenu() {
                 fontSize: "15px",
               }}
             >
-              ⭐ AmiVest Premium
+              ⭐ Kiro AI Premium
             </div>
 
             <div

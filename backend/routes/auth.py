@@ -109,7 +109,7 @@ def send_otp_email(email, otp):
 
     message = EmailMessage()
 
-    message["Subject"] = "Your Amivest AI Login OTP"
+    message["Subject"] = "Your Kiro AI Login OTP"
     message["From"] = smtp_email
     message["To"] = email
 
@@ -117,7 +117,7 @@ def send_otp_email(email, otp):
         f"""
 Hello,
 
-Your Amivest AI verification code is:
+Your Kiro AI verification code is:
 
 {otp}
 
@@ -127,7 +127,7 @@ If you did not request this code,
 you can safely ignore this email.
 
 Regards,
-Amivest AI Support
+Kiro AI Support
 """
     )
 

@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parents[1]
 load_dotenv(BASE_DIR / ".env")
 
-SQLITE_DB_PATH = BASE_DIR / "database" / "finsaathi.db"
+SQLITE_DB_PATH = BASE_DIR / "database" / "kiroai.db"
 
 
 class GenericCursorWrapper:
@@ -266,7 +266,7 @@ def get_connection():
     mysql_port = int(os.getenv("DB_PORT", "3306"))
     mysql_user = os.getenv("DB_USER", "root")
     mysql_pwd = os.getenv("DB_PASSWORD", "")
-    mysql_db = os.getenv("DB_NAME", "finsaathi")
+    mysql_db = os.getenv("DB_NAME", "kiroai")
 
     try:
         import mysql.connector

@@ -607,7 +607,7 @@ def check_spending_limit(user_id, category):
 # ============================================================
 
 SYSTEM_PROMPT = """
-You are AmiVest Alexa AI inside FinSaathi.
+You are Kiro Alexa AI inside Kiro AI.
 
 You are a personal financial assistant.
 
@@ -864,7 +864,7 @@ Do not invent amounts or transactions.
 
     except Exception as e:
         print("\n====================================")
-        print("AMIVEST GROQ ERROR")
+        print("KIRO AI GROQ ERROR")
         print("====================================")
         traceback.print_exc()
 

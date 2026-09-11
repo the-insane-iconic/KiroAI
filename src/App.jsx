@@ -35,9 +35,9 @@ import BusinessLaunchpad from "./pages/BusinessLaunchpad";
 
 /*
 ===========================================================
- AMIVEST 3-MODE APPLICATION
+ KIRO AI 3-MODE APPLICATION
  ----------------------------------------------------------
- AmiVest    = Personal Finance
+ Kiro AI    = Personal Finance
  AmiRent    = PG / Room / Flat / Daily Stay
  AmiBusiness= Business Feasibility
 
@@ -50,13 +50,13 @@ import BusinessLaunchpad from "./pages/BusinessLaunchpad";
 */
 
 const STORAGE = {
-  rentProfile: "amivest_rent_profile",
-  rentProperties: "amivest_rent_properties",
-  rentApplications: "amivest_rent_applications",
-  rentPayments: "amivest_rent_payments",
-  rentMessages: "amivest_rent_messages",
-  rentBills: "amivest_rent_bills",
-  rentSession: "amivest_rent_session",
+  rentProfile: "kiro_rent_profile",
+  rentProperties: "kiro_rent_properties",
+  rentApplications: "kiro_rent_applications",
+  rentPayments: "kiro_rent_payments",
+  rentMessages: "kiro_rent_messages",
+  rentBills: "kiro_rent_bills",
+  rentSession: "kiro_rent_session",
 };
 
 function readStore(key, fallback) {
@@ -1410,7 +1410,7 @@ function BusinessAdvisorPage() {
     <div className="business-page">
       <section className="business-hero">
         <div className="business-inner">
-          <button className="back-button" onClick={() => navigate("/")}>← AmiVest</button>
+          <button className="back-button" onClick={() => navigate("/")}>← Kiro AI</button>
           <span className="eyebrow">AMIBUSINESS AI</span>
           <h1>Should you open this business here?</h1>
           <p>
@@ -1524,7 +1524,7 @@ function NotFoundPage() {
     <div className="not-found">
       <div>🔎</div>
       <h1>Page not found</h1>
-      <button className="primary-button" onClick={() => navigate("/")}>Go to AmiVest</button>
+      <button className="primary-button" onClick={() => navigate("/")}>Go to Kiro AI</button>
     </div>
   );
 }
@@ -1537,7 +1537,7 @@ function App() {
   const [globalTransactions, setGlobalTransactions] = useState([]);
 
   useEffect(() => {
-    document.title = "AmiVest";
+    document.title = "Kiro AI";
   }, []);
 
   return (
@@ -1547,7 +1547,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
 
-        {/* AMIVEST */}
+        {/* KIRO AI */}
         <Route path="/" element={<Layout />}>
           <Route
             index
@@ -1632,9 +1632,9 @@ function App() {
         button { cursor: pointer; }
 
         /* =========================================================
-           AMIVEST MODE SWITCHER (Top Right Dropdown)
+           KIRO AI MODE SWITCHER (Top Right Dropdown)
            ========================================================= */
-        .amivest-mode-wrapper {
+        .kiro-mode-wrapper {
           position: fixed;
           top: 14px;
           right: 24px;
@@ -2607,7 +2607,7 @@ function App() {
         }
 
         @media (max-width: 650px) {
-          .amivest-mode-wrapper { top: 8px; right: 8px; }
+          .kiro-mode-wrapper { top: 8px; right: 8px; }
           .mode-main-button { padding: 7px 9px; }
           .role-grid { grid-template-columns: 1fr; }
           .rent-hero { padding-top: 90px; }

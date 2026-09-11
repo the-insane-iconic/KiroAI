@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 function Sidebar() {
   const navigate = useNavigate();
 
-  // PRIMARY: Financial Management (dedicated AmiVest purpose)
+  // PRIMARY: Financial Management (dedicated Kiro AI purpose)
   const financialMenu = [
     { name: "Dashboard", path: "/", icon: "📊", desc: "Cashflow & financial health" },
     { name: "Goals & Targets", path: "/goals", icon: "🎯", desc: "Business & capital milestones" },
@@ -100,7 +100,7 @@ function Sidebar() {
               flexShrink: 0,
             }}
           >
-            A
+            K
           </div>
           <div>
             <h1
@@ -114,7 +114,7 @@ function Sidebar() {
                 WebkitTextFillColor: "transparent",
               }}
             >
-              Amivest AI
+              Kiro AI
             </h1>
             <span
               style={{

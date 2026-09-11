@@ -1,5 +1,5 @@
 # ============================================================
-# AMIVEST AI - GROQ VISION API
+# KIRO AI - GROQ VISION API
 # File: backend/routes/vision.py
 # ============================================================
 
@@ -173,7 +173,7 @@ def build_prompt(question, language):
     language_instruction = get_language_instruction(language)
 
     return f"""
-You are AmiVest Alexa AI, an advanced multimodal personal AI assistant.
+You are Kiro Alexa AI, an advanced multimodal personal AI assistant.
 
 The user has provided an image and asked a question.
 
@@ -204,7 +204,7 @@ IMPORTANT RULES:
     from the image.
 14. If the user asks a normal question such as "hello", respond
     naturally.
-15. You are AmiVest Alexa AI. Sound natural and conversational.
+15. You are Kiro Alexa AI. Sound natural and conversational.
 16. Do not mention Groq, models, APIs or internal implementation.
 17. Keep answers concise unless the user asks for detail.
 18. If the image does not contain enough information, clearly say
@@ -233,7 +233,7 @@ def call_groq(model, mime_type, image_base64, prompt):
             {
                 "role": "system",
                 "content": (
-                    "You are AmiVest Alexa AI. "
+                    "You are Kiro Alexa AI. "
                     "Be accurate, natural and helpful."
                 ),
             },
@@ -331,7 +331,7 @@ def vision_status():
 
     return jsonify({
         "success": True,
-        "service": "AmiVest Vision",
+        "service": "Kiro Vision",
         "provider": "Groq",
         "configured": bool(GROQ_API_KEY),
         "models": VISION_MODELS,
@@ -354,7 +354,7 @@ def analyze_image():
     try:
         print("")
         print("==========================================")
-        print("       AMIVEST GROQ VISION REQUEST")
+        print("       KIRO AI GROQ VISION REQUEST")
         print("==========================================")
 
         # ----------------------------------------------------

@@ -7,7 +7,7 @@ function Chat() {
     {
       sender: "ai",
       message:
-        "👋 Hello Amit!\n\nI am **amivest AI**.\n\nI already analyzed your financial profile.\n\nAsk me anything about savings, goals, investments or expenses."
+        "👋 Hello Founder!\n\nI am **Kiro AI**.\n\nI already analyzed your financial profile.\n\nAsk me anything about savings, goals, investments or expenses."
     }
   ]);
 
@@ -44,7 +44,7 @@ function Chat() {
         ...prev,
         {
           sender: "ai",
-          message: "❌ Unable to connect to amivest AI."
+          message: "❌ Unable to connect to Kiro AI."
         }
       ]);
     }
@@ -61,7 +61,7 @@ function Chat() {
 
         <h1 className="text-3xl font-bold">
 
-          🤖 FinSaathi AI
+          🤖 Kiro AI
 
         </h1>
 
@@ -103,7 +103,7 @@ function Chat() {
 
           <input
             className="flex-1 rounded-xl bg-slate-900 p-4 outline-none border border-slate-700"
-            placeholder="Ask FinSaathi AI..."
+            placeholder="Ask Kiro AI..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {

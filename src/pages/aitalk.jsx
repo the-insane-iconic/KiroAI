@@ -73,7 +73,7 @@ async function apiRequest(path, options = {}) {
 
 
 /* ============================================================
-   AMIVEST ALEXA AI
+   KIRO AI ALEXA AI
    ============================================================ */
 
 function AITalk() {
@@ -86,7 +86,7 @@ function AITalk() {
     {
       role: "assistant",
       text:
-        "Namaste! 👋 I am AmiVest Alexa AI.\n\n" +
+        "Namaste! 👋 I am Kiro Alexa AI.\n\n" +
         "Ask me about your spending, goals, budgets or transactions.\n\n" +
         'You can also say: "Add 500 in food".',
     },
@@ -113,7 +113,7 @@ function AITalk() {
   const [error, setError] = useState("");
 
   const [language, setLanguageState] = useState(
-    localStorage.getItem("amivest_language") || "english"
+    localStorage.getItem("kiro_language") || "english"
   );
 
   const [backendStatus, setBackendStatus] = useState("ready");
@@ -181,7 +181,7 @@ function AITalk() {
       new SpeechSynthesisUtterance(text);
 
     const selectedLanguage =
-      localStorage.getItem("amivest_language") ||
+      localStorage.getItem("kiro_language") ||
       language ||
       "english";
 
@@ -192,7 +192,7 @@ function AITalk() {
     }
 
     const savedRate = Number(
-      localStorage.getItem("amivest_speech_rate")
+      localStorage.getItem("kiro_speech_rate")
     );
 
     utterance.rate =
@@ -332,7 +332,7 @@ function AITalk() {
 
         if (!reply) {
           throw new Error(
-            "AmiVest AI returned an empty response."
+            "Kiro AI returned an empty response."
           );
         }
 
@@ -359,7 +359,7 @@ function AITalk() {
 
         const autoSpeak =
           localStorage.getItem(
-            "amivest_auto_speak"
+            "kiro_auto_speak"
           );
 
 
@@ -370,7 +370,7 @@ function AITalk() {
       } catch (err) {
 
         console.error(
-          "AmiVest Alexa error:",
+          "Kiro Alexa error:",
           err
         );
 
@@ -396,7 +396,7 @@ function AITalk() {
               role: "assistant",
               text:
                 "❌ Authentication required.\n\n" +
-                "Please login again and then return to AmiVest Alexa AI.",
+                "Please login again and then return to Kiro Alexa AI.",
             },
           ]);
 
@@ -415,7 +415,7 @@ function AITalk() {
         ) {
 
           const networkMessage =
-            `Cannot connect to AmiVest backend.\n\n` +
+            `Cannot connect to Kiro AI backend.\n\n` +
             `Backend: ${BACKEND_URL}\n\n` +
             `Make sure Flask is running on port 5000.`;
 
@@ -427,7 +427,7 @@ function AITalk() {
             {
               role: "assistant",
               text:
-                "❌ Cannot connect to AmiVest backend.\n\n" +
+                "❌ Cannot connect to Kiro AI backend.\n\n" +
                 "Please make sure your Flask server is running.",
             },
           ]);
@@ -442,7 +442,7 @@ function AITalk() {
 
         const message =
           err.message ||
-          "Unable to connect to AmiVest AI.";
+          "Unable to connect to Kiro AI.";
 
 
         setError(message);
@@ -517,7 +517,7 @@ function AITalk() {
 
     const selectedLanguage =
       localStorage.getItem(
-        "amivest_language"
+        "kiro_language"
       ) ||
       language ||
       "english";
@@ -1012,7 +1012,7 @@ function AITalk() {
           speak(reply);
         }
       } catch (err) {
-        console.error("AmiVest Vision error:", err);
+        console.error("Kiro Vision error:", err);
         setBackendStatus("error");
 
         let message =
@@ -1201,7 +1201,7 @@ function AITalk() {
     (newLanguage) => {
 
       localStorage.setItem(
-        "amivest_language",
+        "kiro_language",
         newLanguage
       );
 
@@ -1302,7 +1302,7 @@ function AITalk() {
             letterSpacing: "2px",
           }}
         >
-          AMIVEST AI
+          KIRO AI
         </div>
 
 
@@ -1314,7 +1314,7 @@ function AITalk() {
             color: "var(--text-h)",
           }}
         >
-          AmiVest Alexa AI 🎙️📷
+          Kiro Alexa AI 🎙️📷
         </h1>
 
 
@@ -1402,7 +1402,7 @@ function AITalk() {
             ? "🤖 Thinking..."
             : backendStatus === "error"
             ? "🔴 Connection problem"
-            : "AmiVest is ready"}
+            : "Kiro AI is ready"}
 
         </div>
 
@@ -1436,7 +1436,7 @@ function AITalk() {
                   fontSize: "14px",
                 }}
               >
-                📷 AmiVest Vision
+                📷 Kiro Vision
               </div>
 
               <div
@@ -1606,7 +1606,7 @@ function AITalk() {
             >
               <img
                 src={cameraImage}
-                alt="Captured image for AmiVest Vision"
+                alt="Captured image for Kiro Vision"
                 style={{
                   width: "100%",
                   maxHeight: "280px",
@@ -1898,7 +1898,7 @@ function AITalk() {
                 padding: "15px",
               }}
             >
-              🤖 AmiVest Alexa is thinking...
+              🤖 Kiro Alexa is thinking...
             </div>
 
           )}
@@ -2038,7 +2038,7 @@ function AITalk() {
 
             }}
 
-            placeholder="Ask AmiVest Alexa..."
+            placeholder="Ask Kiro Alexa..."
 
             disabled={loading}
 

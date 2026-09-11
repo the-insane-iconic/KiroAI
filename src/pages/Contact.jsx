@@ -140,7 +140,7 @@ function Contact() {
       <div style={{ ...card, marginTop: "20px" }}>
         <h3 style={{ marginTop: 0, marginBottom: "10px", color: "var(--text-h)" }}>Other ways to reach us</h3>
         <p style={{ color: "var(--muted)", margin: 0, lineHeight: 1.8 }}>
-          Email: support@amivest.ai<br />
+          Email: support@kiroai.io<br />
           Response time: within 2 business days
         </p>
       </div>

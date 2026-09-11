@@ -194,7 +194,7 @@ def query_business_evidence(
         ),
         timeout=30,
         headers={
-            "User-Agent": "AmiVest-AmiBusiness/1.0",
+            "User-Agent": "Kiro AI-AmiBusiness/1.0",
         },
     )
 

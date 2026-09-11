@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 /*
  * ============================================================
- * AMIVEST AI - GOALS / DAILY EXPENSE / SPENDING LIMITS
+ * KIRO AI - GOALS / DAILY EXPENSE / SPENDING LIMITS
  * ============================================================
  *
  * This page is intentionally independent:
@@ -1154,7 +1154,7 @@ export default function Goals({ transactions = [] }) {
 
               <p style={mutedStyle}>
                 Set a limit only if you want
-                AmiVest to warn you about spending.
+                Kiro AI to warn you about spending.
               </p>
             </div>
 
@@ -1258,7 +1258,7 @@ export default function Goals({ transactions = [] }) {
             </h2>
 
             <p style={mutedStyle}>
-              AmiVest watches your spending
+              Kiro AI watches your spending
               against the limits you set.
             </p>
           </div>

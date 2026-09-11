@@ -19,14 +19,14 @@ function Disclaimer() {
       <div style={{ marginBottom: "35px" }}>
         <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 700, color: "var(--text-h)" }}>Disclaimer</h1>
         <p style={{ margin: "4px 0 0 0", color: "var(--muted)", fontSize: "14px" }}>
-          Please read before acting on anything Amivest AI tells you.
+          Please read before acting on anything Kiro AI tells you.
         </p>
       </div>
 
       <div style={{ ...card, borderColor: "#ff4500" }}>
         <h3 style={{ ...h3, color: "#ff4500" }}>Not financial, tax, or legal advice</h3>
         <p style={p}>
-          Amivest AI is an informational tool. Responses about budgeting, savings,
+          Kiro AI is an informational tool. Responses about budgeting, savings,
           mutual funds, SIPs, loans, or taxes are general in nature and generated with
           the help of AI. They are not a substitute for advice from a licensed
           financial advisor, chartered accountant, or tax professional who understands
@@ -37,7 +37,7 @@ function Disclaimer() {
       <div style={card}>
         <h3 style={h3}>AI-generated responses can be wrong</h3>
         <p style={p}>
-          Amivest AI uses an AI model to generate answers based on your transaction
+          Kiro AI uses an AI model to generate answers based on your transaction
           data and general financial knowledge. Like any AI system, it can misread
           data, miscalculate, or give an incomplete answer. Always verify important
           numbers — especially balances, tax figures, and loan calculations — against
@@ -59,7 +59,7 @@ function Disclaimer() {
         <h3 style={h3}>Your responsibility</h3>
         <p style={p}>
           Decisions about your money — spending, saving, borrowing, or investing —
-          are yours to make. Amivest AI does not take responsibility for outcomes
+          are yours to make. Kiro AI does not take responsibility for outcomes
           resulting from decisions made using information from the app.
         </p>
       </div>
@@ -68,7 +68,7 @@ function Disclaimer() {
         <h3 style={h3}>Questions</h3>
         <p style={p}>
           If something in the app seems inaccurate or unclear, please contact us at
-          support@amivest.ai so we can look into it.
+          support@kiroai.io so we can look into it.
         </p>
       </div>
     </div>

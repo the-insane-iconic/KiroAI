@@ -1,5 +1,5 @@
 """
-AmiVest Business Advisor - Day 1
+Kiro AI Business Advisor - Day 1
 --------------------------------
 
 This file fixes the import error:
@@ -132,7 +132,7 @@ def parse_radius(value):
 def business_health():
     return jsonify({
         "success": True,
-        "service": "AmiVest Business Advisor",
+        "service": "Kiro AI Business Advisor",
         "status": "ready",
         "version": "financial-v2",
     }), 200
@@ -149,19 +149,19 @@ def business_modes():
         "modes": [
             {
                 "id": "finance",
-                "name": "AmiVest Finance",
+                "name": "Kiro AI Finance",
                 "icon": "💰",
                 "path": "/dashboard",
             },
             {
                 "id": "rent",
-                "name": "AmiVest Rent",
+                "name": "Kiro AI Rent",
                 "icon": "🏠",
                 "path": "/rent",
             },
             {
                 "id": "business",
-                "name": "AmiVest Business",
+                "name": "Kiro AI Business",
                 "icon": "🏪",
                 "path": "/business",
             },

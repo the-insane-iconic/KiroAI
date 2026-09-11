@@ -21,9 +21,9 @@ function getTabContext(pathname) {
       badgeColor: "#06B6D4",
       subNote: "Tuned to Mudra, PMEGP, 35% Subsidies & EMI Calculations",
       welcome:
-        "👋 Hello! I am AmiVest AI, your Govt Loan & Subsidy Advisor. Ask me anything about Mudra loans (up to ₹10L), PMEGP subsidies (up to 35%), collateral-free schemes under CGTMSE, or EMI schedules!",
+        "👋 Hello! I am Kiro AI, your Govt Loan & Subsidy Advisor. Ask me anything about Mudra loans (up to ₹10L), PMEGP subsidies (up to 35%), collateral-free schemes under CGTMSE, or EMI schedules!",
       welcomeHi:
-        "👋 नमस्ते! मैं AmiVest AI हूँ, आपकी सरकारी लोन एवं सब्सिडी सलाहकार। Mudra, PMEGP, 35% सब्सिडी, पात्रता व ज़रूरी दस्तावेज़ों के बारे में पूछें।",
+        "👋 नमस्ते! मैं Kiro AI हूँ, आपकी सरकारी लोन एवं सब्सिडी सलाहकार। Mudra, PMEGP, 35% सब्सिडी, पात्रता व ज़रूरी दस्तावेज़ों के बारे में पूछें।",
       placeholder: "Ask about Mudra, PMEGP subsidy, loan eligibility, EMI...",
       actions: [
         { icon: "🏛️", label: "Mudra Categories", command: "What are the Mudra loan categories (Shishu, Kishore, Tarun) and limits?" },
@@ -44,9 +44,9 @@ function getTabContext(pathname) {
       badgeColor: "#10B981",
       subNote: "Tuned to Market Demand, Footfall, Profit Margins & Capital",
       welcome:
-        "👋 Hello! I am AmiVest AI, your Business Advisor. Ask me about shop feasibility, footfall analysis, initial capital requirements, profit margins, or high-demand business ideas for your area.",
+        "👋 Hello! I am Kiro AI, your Business Advisor. Ask me about shop feasibility, footfall analysis, initial capital requirements, profit margins, or high-demand business ideas for your area.",
       welcomeHi:
-        "👋 नमस्ते! मैं AmiVest AI हूँ। दुकान की व्यवहार्यता, स्थानीय मांग, लागत, और कम जोखिम वाले बिज़नेस आइडिया के बारे में पूछें।",
+        "👋 नमस्ते! मैं Kiro AI हूँ। दुकान की व्यवहार्यता, स्थानीय मांग, लागत, और कम जोखिम वाले बिज़नेस आइडिया के बारे में पूछें।",
       placeholder: "Ask about business ideas, footfall, profit margin...",
       actions: [
         { icon: "🏪", label: "Best Business ₹2-5L", command: "What is a good business to start with ₹2-5 Lakh capital?" },
@@ -66,9 +66,9 @@ function getTabContext(pathname) {
       badgeColor: "#F59E0B",
       subNote: "Tuned to Financial Targets, Timelines & Capital Milestones",
       welcome:
-        "👋 Hello! I am AmiVest AI. Ask me how to plan, track, and accelerate your financial milestones and business emergency buffers.",
+        "👋 Hello! I am Kiro AI. Ask me how to plan, track, and accelerate your financial milestones and business emergency buffers.",
       welcomeHi:
-        "👋 नमस्ते! मैं AmiVest AI हूँ। अपने बचत लक्ष्य, बिज़नेस माइलस्टोन और समय सीमा की योजना बनाएं।",
+        "👋 नमस्ते! मैं Kiro AI हूँ। अपने बचत लक्ष्य, बिज़नेस माइलस्टोन और समय सीमा की योजना बनाएं।",
       placeholder: "Ask about goals, targets, milestones...",
       actions: [
         { icon: "🎯", label: "Show My Goals", command: "Show my goals" },
@@ -87,9 +87,9 @@ function getTabContext(pathname) {
       badgeColor: "#8B5CF6",
       subNote: "Tuned to Wealth Growth — SIPs, Gold, FDs & Capital Safety",
       welcome:
-        "👋 Hello! I am AmiVest AI. Ask me about safe investment avenues, SIPs, gold, fixed deposits, and how to allocate monthly surplus.",
+        "👋 Hello! I am Kiro AI. Ask me about safe investment avenues, SIPs, gold, fixed deposits, and how to allocate monthly surplus.",
       welcomeHi:
-        "👋 नमस्ते! मैं AmiVest AI हूँ। म्यूचुअल फंड, SIP, गोल्ड, एफडी और सुरक्षित निवेश के बारे में पूछें।",
+        "👋 नमस्ते! मैं Kiro AI हूँ। म्यूचुअल फंड, SIP, गोल्ड, एफडी और सुरक्षित निवेश के बारे में पूछें।",
       placeholder: "Ask about SIP, mutual funds, gold, FD...",
       actions: [
         { icon: "📈", label: "Show Portfolio", command: "Show my investments" },
@@ -108,9 +108,9 @@ function getTabContext(pathname) {
       badgeColor: "#EC4899",
       subNote: "Tuned to Tax Deductions, 80C, GST & MSME Exemptions",
       welcome:
-        "👋 Hello! I am AmiVest AI. Ask me about income tax slabs, Section 80C deductions, new vs old regime, or MSME 45-day payment protections.",
+        "👋 Hello! I am Kiro AI. Ask me about income tax slabs, Section 80C deductions, new vs old regime, or MSME 45-day payment protections.",
       welcomeHi:
-        "👋 नमस्ते! मैं AmiVest AI हूँ। टैक्स छूट, नई vs पुरानी टैक्स व्यवस्था और GST नियमों के बारे में पूछें।",
+        "👋 नमस्ते! मैं Kiro AI हूँ। टैक्स छूट, नई vs पुरानी टैक्स व्यवस्था और GST नियमों के बारे में पूछें।",
       placeholder: "Ask about tax savings, 80C, slabs, GST...",
       actions: [
         { icon: "🧾", label: "80C Deductions", command: "What investments qualify for Section 80C tax deduction?" },
@@ -129,9 +129,9 @@ function getTabContext(pathname) {
       badgeColor: "#3B82F6",
       subNote: "Tuned to Borrower Protection — Recovery Rules & Ombudsman",
       welcome:
-        "👋 Hello! I am AmiVest AI. Ask me about RBI digital lending rules, protection from recovery agent harassment, free ombudsman complaints, and credit score disputes.",
+        "👋 Hello! I am Kiro AI. Ask me about RBI digital lending rules, protection from recovery agent harassment, free ombudsman complaints, and credit score disputes.",
       welcomeHi:
-        "👋 नमस्ते! मैं AmiVest AI हूँ। RBI के डिजिटल लोन नियम, रिकवरी एजेंट से सुरक्षा और लोकपाल शिकायत के बारे में पूछें।",
+        "👋 नमस्ते! मैं Kiro AI हूँ। RBI के डिजिटल लोन नियम, रिकवरी एजेंट से सुरक्षा और लोकपाल शिकायत के बारे में पूछें।",
       placeholder: "Ask about borrower rights, recovery rules...",
       actions: [
         { icon: "📜", label: "Recovery Norms", command: "What are RBI rules regarding loan recovery agents and allowed call timings?" },
@@ -150,10 +150,10 @@ function getTabContext(pathname) {
     badgeColor: "#14B8A6",
     subNote: "Tuned to Cashflow, Budgeting & Smart Daily Money Management",
     welcome:
-      "👋 Hello! I am AmiVest AI, your personal finance co-pilot. I can help you track expenses, analyze budgets, plan savings, check loan schemes, and optimize cashflow.",
+      "👋 Hello! I am Kiro AI, your personal finance co-pilot. I can help you track expenses, analyze budgets, plan savings, check loan schemes, and optimize cashflow.",
     welcomeHi:
-      "👋 नमस्ते! मैं AmiVest AI हूँ। अपने खर्च, बजट, लोन, बचत और वित्तीय लक्ष्यों के लिए कुछ भी पूछें।",
-    placeholder: "Ask AmiVest AI anything...",
+      "👋 नमस्ते! मैं Kiro AI हूँ। अपने खर्च, बजट, लोन, बचत और वित्तीय लक्ष्यों के लिए कुछ भी पूछें।",
+    placeholder: "Ask Kiro AI anything...",
     actions: [
       { icon: "📊", label: "Monthly Budget", command: "Show my monthly budget" },
       { icon: "💳", label: "Recent Transactions", command: "Show my recent transactions" },
@@ -409,22 +409,22 @@ function buildLocalReply(query, language, tabMode) {
   // Generic Greetings
   if (q.includes("hello") || q.includes("hi") || q.includes("hey") || q.includes("namaste")) {
     if (isHi) {
-      return `नमस्ते! मैं AmiVest AI हूँ। मैं आपके बिज़नेस, लोन, खर्च, बजट और बचत के निर्णयों में सहायता कर सकती हूँ। आप क्या जानना चाहते हैं?`;
+      return `नमस्ते! मैं Kiro AI हूँ। मैं आपके बिज़नेस, लोन, खर्च, बजट और बचत के निर्णयों में सहायता कर सकती हूँ। आप क्या जानना चाहते हैं?`;
     }
-    return `Hello! I am AmiVest AI. I can assist you with government loans, business viability, budgeting, investments, and financial planning. How can I help you today?`;
+    return `Hello! I am Kiro AI. I can assist you with government loans, business viability, budgeting, investments, and financial planning. How can I help you today?`;
   }
 
   // Default intelligent response
   if (isHi) {
-    return `मैंने आपका प्रश्न समझ लिया है: "${query}"। \n\nAmiVest AI आपको सरकारी लोन (Mudra, PMEGP), बिज़नेस फिजिबिलिटी, बजट और बचत योजनाओं पर सटीक मार्गदर्शन प्रदान करता है। कृपया ऊपर दिए गए सुझावों में से चुनें या अधिक विवरण साझा करें।`;
+    return `मैंने आपका प्रश्न समझ लिया है: "${query}"। \n\nKiro AI आपको सरकारी लोन (Mudra, PMEGP), बिज़नेस फिजिबिलिटी, बजट और बचत योजनाओं पर सटीक मार्गदर्शन प्रदान करता है। कृपया ऊपर दिए गए सुझावों में से चुनें या अधिक विवरण साझा करें।`;
   }
-  return `I have noted your query: "${query}". \n\nAmiVest AI provides hyper-local guidance on government schemes (Mudra, PMEGP), business feasibility, cashflow optimization, and financial safety. Feel free to tap one of the suggested topics above or ask for specific numbers!`;
+  return `I have noted your query: "${query}". \n\nKiro AI provides hyper-local guidance on government schemes (Mudra, PMEGP), business feasibility, cashflow optimization, and financial safety. Feel free to tap one of the suggested topics above or ask for specific numbers!`;
 }
 
 /* =========================================================
-   MAIN AMIVEST AI COMPONENT (ChatGPT / Gemini Pro Aesthetic)
+   MAIN KIRO AI COMPONENT (ChatGPT / Gemini Pro Aesthetic)
 ========================================================= */
-export default function AmiVestAlexaPro() {
+export default function Kiro AIAlexaPro() {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -438,7 +438,7 @@ export default function AmiVestAlexaPro() {
 
   const [open, setOpen] = useState(false);
   const [language, setLanguage] = useState(
-    () => localStorage.getItem("amivest_alexa_language") || "en"
+    () => localStorage.getItem("kiro_alexa_language") || "en"
   );
 
   const [message, setMessage] = useState("");
@@ -771,7 +771,7 @@ export default function AmiVestAlexaPro() {
             <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <span style={{ fontWeight: "800", fontSize: "13px", letterSpacing: "-0.2px", color: "#F8FAFC" }}>
-                  AmiVest AI
+                  Kiro AI
                 </span>
                 <span
                   style={{
@@ -790,7 +790,7 @@ export default function AmiVestAlexaPro() {
               </div>
 
               <span style={{ fontSize: "9.5px", color: "#94A3B8" }}>
-                {listening ? "🎤 Listening..." : "Ask AmiVest AI anything"}
+                {listening ? "🎤 Listening..." : "Ask Kiro AI anything"}
               </span>
             </div>
 
@@ -802,7 +802,7 @@ export default function AmiVestAlexaPro() {
                 setOpen(true);
                 startVoice();
               }}
-              title="Speak to AmiVest AI"
+              title="Speak to Kiro AI"
               style={{
                 width: "30px",
                 height: "30px",
@@ -897,7 +897,7 @@ export default function AmiVestAlexaPro() {
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     <span style={{ fontWeight: "800", fontSize: "14px", letterSpacing: "-0.2px", color: "var(--text-h)" }}>
-                      AmiVest AI
+                      Kiro AI
                     </span>
                     <span
                       style={{
@@ -938,7 +938,7 @@ export default function AmiVestAlexaPro() {
                     type="button"
                     onClick={() => {
                       setLanguage("en");
-                      localStorage.setItem("amivest_alexa_language", "en");
+                      localStorage.setItem("kiro_alexa_language", "en");
                     }}
                     style={{
                       padding: "2px 7px",
@@ -958,7 +958,7 @@ export default function AmiVestAlexaPro() {
                     type="button"
                     onClick={() => {
                       setLanguage("hi");
-                      localStorage.setItem("amivest_alexa_language", "hi");
+                      localStorage.setItem("kiro_alexa_language", "hi");
                     }}
                     style={{
                       padding: "2px 7px",
@@ -1243,7 +1243,7 @@ export default function AmiVestAlexaPro() {
                       gap: "7px",
                     }}
                   >
-                    <span>AmiVest AI is thinking...</span>
+                    <span>Kiro AI is thinking...</span>
                     <span style={{ animation: "geminiSparkleGlow 1.2s infinite" }}>✦</span>
                   </div>
                 </div>

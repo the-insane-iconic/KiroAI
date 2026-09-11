@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 /*
-  AmiVest 2.0 — Global Mode Switcher
+  Kiro AI 2.0 — Global Mode Switcher
 
   Three interfaces:
     💰 Finance
@@ -50,7 +50,7 @@ function modeFromPath(pathname) {
   return "finance";
 }
 
-export default function AmiVestModeSwitcher() {
+export default function Kiro AIModeSwitcher() {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -85,7 +85,7 @@ export default function AmiVestModeSwitcher() {
 
   useEffect(() => {
     localStorage.setItem(
-      "amivest_active_mode",
+      "kiro_active_mode",
       activeMode
     );
   }, [activeMode]);
@@ -98,7 +98,7 @@ export default function AmiVestModeSwitcher() {
   return (
     <>
       <style>{`
-        .amivest-mode-root {
+        .kiro-mode-root {
           position: fixed;
           right: 22px;
           bottom: 22px;
@@ -106,7 +106,7 @@ export default function AmiVestModeSwitcher() {
           font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
-        .amivest-mode-panel {
+        .kiro-mode-panel {
           width: 286px;
           margin-bottom: 10px;
           padding: 10px;
@@ -119,14 +119,14 @@ export default function AmiVestModeSwitcher() {
           backdrop-filter: blur(18px);
         }
 
-        .amivest-mode-heading {
+        .kiro-mode-heading {
           display: flex;
           justify-content: space-between;
           align-items: center;
           padding: 7px 8px 10px;
         }
 
-        .amivest-mode-title {
+        .kiro-mode-title {
           font-size: 12px;
           font-weight: 800;
           letter-spacing: .9px;
@@ -134,18 +134,18 @@ export default function AmiVestModeSwitcher() {
           color: #dceaf2;
         }
 
-        .amivest-mode-subtitle {
+        .kiro-mode-subtitle {
           margin-top: 2px;
           font-size: 10px;
           color: #6f8798;
         }
 
-        .amivest-mode-list {
+        .kiro-mode-list {
           display: grid;
           gap: 7px;
         }
 
-        .amivest-mode-item {
+        .kiro-mode-item {
           width: 100%;
           display: flex;
           align-items: center;
@@ -163,18 +163,18 @@ export default function AmiVestModeSwitcher() {
             background .15s ease;
         }
 
-        .amivest-mode-item:hover {
+        .kiro-mode-item:hover {
           transform: translateY(-1px);
           border-color: rgba(24,168,112,.55);
           background: rgba(24,168,112,.08);
         }
 
-        .amivest-mode-item.active {
+        .kiro-mode-item.active {
           border-color: rgba(24,168,112,.8);
           background: rgba(24,168,112,.13);
         }
 
-        .amivest-mode-icon {
+        .kiro-mode-icon {
           width: 36px;
           height: 36px;
           display: grid;
@@ -185,18 +185,18 @@ export default function AmiVestModeSwitcher() {
           font-size: 18px;
         }
 
-        .amivest-mode-copy {
+        .kiro-mode-copy {
           min-width: 0;
           flex: 1;
         }
 
-        .amivest-mode-name {
+        .kiro-mode-name {
           font-size: 12px;
           font-weight: 800;
           color: #eef7fb;
         }
 
-        .amivest-mode-desc {
+        .kiro-mode-desc {
           margin-top: 3px;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -205,14 +205,14 @@ export default function AmiVestModeSwitcher() {
           color: #7892a4;
         }
 
-        .amivest-mode-badge {
+        .kiro-mode-badge {
           font-size: 8px;
           font-weight: 800;
           letter-spacing: .5px;
           color: #69e0c6;
         }
 
-        .amivest-mode-trigger {
+        .kiro-mode-trigger {
           min-width: 64px;
           height: 54px;
           display: inline-flex;
@@ -229,11 +229,11 @@ export default function AmiVestModeSwitcher() {
             0 0 22px rgba(10,190,185,.10);
         }
 
-        .amivest-mode-trigger:hover {
+        .kiro-mode-trigger:hover {
           border-color: rgba(48,229,209,.9);
         }
 
-        .amivest-mode-trigger-icon {
+        .kiro-mode-trigger-icon {
           width: 36px;
           height: 36px;
           display: grid;
@@ -243,45 +243,45 @@ export default function AmiVestModeSwitcher() {
           font-size: 19px;
         }
 
-        .amivest-mode-trigger-copy {
+        .kiro-mode-trigger-copy {
           display: flex;
           flex-direction: column;
           align-items: flex-start;
         }
 
-        .amivest-mode-trigger-name {
+        .kiro-mode-trigger-name {
           font-size: 11px;
           font-weight: 900;
         }
 
-        .amivest-mode-trigger-caption {
+        .kiro-mode-trigger-caption {
           margin-top: 2px;
           font-size: 8px;
           color: #7e97a7;
         }
 
-        .amivest-mode-arrow {
+        .kiro-mode-arrow {
           margin-left: 1px;
           font-size: 12px;
           color: #8fa7b5;
         }
 
         @media (max-width: 560px) {
-          .amivest-mode-root {
+          .kiro-mode-root {
             right: 12px;
             bottom: 12px;
           }
 
-          .amivest-mode-panel {
+          .kiro-mode-panel {
             width: min(286px, calc(100vw - 24px));
           }
 
-          .amivest-mode-trigger-copy,
-          .amivest-mode-arrow {
+          .kiro-mode-trigger-copy,
+          .kiro-mode-arrow {
             display: none;
           }
 
-          .amivest-mode-trigger {
+          .kiro-mode-trigger {
             width: 54px;
             min-width: 54px;
             justify-content: center;
@@ -292,17 +292,17 @@ export default function AmiVestModeSwitcher() {
 
       <div
         ref={rootRef}
-        className="amivest-mode-root"
-        aria-label="AmiVest application mode switcher"
+        className="kiro-mode-root"
+        aria-label="Kiro AI application mode switcher"
       >
         {open && (
-          <div className="amivest-mode-panel">
-            <div className="amivest-mode-heading">
+          <div className="kiro-mode-panel">
+            <div className="kiro-mode-heading">
               <div>
-                <div className="amivest-mode-title">
-                  AmiVest 2.0
+                <div className="kiro-mode-title">
+                  Kiro AI 2.0
                 </div>
-                <div className="amivest-mode-subtitle">
+                <div className="kiro-mode-subtitle">
                   Choose your workspace
                 </div>
               </div>
@@ -322,34 +322,34 @@ export default function AmiVestModeSwitcher() {
               </button>
             </div>
 
-            <div className="amivest-mode-list">
+            <div className="kiro-mode-list">
               {MODES.map((mode) => {
                 const isActive = mode.id === activeMode;
 
                 return (
                   <button
                     key={mode.id}
-                    className={`amivest-mode-item ${
+                    className={`kiro-mode-item ${
                       isActive ? "active" : ""
                     }`}
                     onClick={() => switchMode(mode)}
                   >
-                    <div className="amivest-mode-icon">
+                    <div className="kiro-mode-icon">
                       {mode.icon}
                     </div>
 
-                    <div className="amivest-mode-copy">
-                      <div className="amivest-mode-name">
+                    <div className="kiro-mode-copy">
+                      <div className="kiro-mode-name">
                         {mode.name}
                       </div>
 
-                      <div className="amivest-mode-desc">
+                      <div className="kiro-mode-desc">
                         {mode.description}
                       </div>
                     </div>
 
                     {isActive && (
-                      <div className="amivest-mode-badge">
+                      <div className="kiro-mode-badge">
                         ACTIVE
                       </div>
                     )}
@@ -361,25 +361,25 @@ export default function AmiVestModeSwitcher() {
         )}
 
         <button
-          className="amivest-mode-trigger"
+          className="kiro-mode-trigger"
           onClick={() => setOpen((value) => !value)}
           aria-expanded={open}
-          aria-label={`Current mode: ${active.name}. Open AmiVest mode switcher.`}
+          aria-label={`Current mode: ${active.name}. Open Kiro AI mode switcher.`}
         >
-          <span className="amivest-mode-trigger-icon">
+          <span className="kiro-mode-trigger-icon">
             {active.icon}
           </span>
 
-          <span className="amivest-mode-trigger-copy">
-            <span className="amivest-mode-trigger-name">
+          <span className="kiro-mode-trigger-copy">
+            <span className="kiro-mode-trigger-name">
               {active.name}
             </span>
-            <span className="amivest-mode-trigger-caption">
+            <span className="kiro-mode-trigger-caption">
               Switch workspace
             </span>
           </span>
 
-          <span className="amivest-mode-arrow">
+          <span className="kiro-mode-arrow">
             {open ? "⌄" : "⌃"}
           </span>
         </button>

@@ -414,7 +414,7 @@ function Dashboard({ transactions, setTransactions }) {
                 className="av-hero-button"
                 onClick={() => handleQuickAction("/chat")}
               >
-                Ask AmiVest
+                Ask Kiro AI
                 <span>❖</span>
               </button>
 
@@ -436,7 +436,7 @@ function Dashboard({ transactions, setTransactions }) {
               </div>
 
               <div>
-                <div className="av-ai-label">AMIVEST AI</div>
+                <div className="av-ai-label">KIRO AI</div>
                 <strong>Today's insight & Alerts</strong>
               </div>
 
@@ -763,13 +763,13 @@ function Dashboard({ transactions, setTransactions }) {
             <PanelHeading
               eyebrow="NEXT ACTIONS"
               title="What should you do?"
-              subtitle="Jump directly into the part of AmiVest you need."
+              subtitle="Jump directly into the part of Kiro AI you need."
             />
 
             <div className="av-actions-list">
               <ActionCard
                 icon="✦"
-                title="Ask AmiVest AI"
+                title="Ask Kiro AI"
                 text="Understand your spending or decide your next move."
                 onClick={() => handleQuickAction("/chat")}
               />
@@ -867,7 +867,7 @@ function Dashboard({ transactions, setTransactions }) {
                 <strong>Reading this view</strong>
                 <p>
                   These values are calculated from the transactions currently
-                  loaded for your authenticated account. AmiVest does not
+                  loaded for your authenticated account. Kiro AI does not
                   invent missing categories or balances.
                 </p>
               </div>
@@ -875,7 +875,7 @@ function Dashboard({ transactions, setTransactions }) {
           </div>
 
           <div className="av-panel av-journey-panel">
-            <div className="av-eyebrow">AMIVEST JOURNEY</div>
+            <div className="av-eyebrow">KIRO AI JOURNEY</div>
             <h2>Your financial world</h2>
             <p>
               One platform for money management, borrowing, goals, business,
@@ -916,7 +916,7 @@ function Dashboard({ transactions, setTransactions }) {
               <JourneyCard
                 icon="🗣️"
                 label="AI Talk"
-                text="Talk to AmiVest"
+                text="Talk to Kiro AI"
                 onClick={() => handleQuickAction("/chat")}
               />
             </div>
@@ -1002,7 +1002,7 @@ function Dashboard({ transactions, setTransactions }) {
 
         <footer className="av-footer">
           <div>
-            <strong>AmiVest</strong> · Your financial command center
+            <strong>Kiro AI</strong> · Your financial command center
           </div>
           <div>
             Data shown here comes from your authenticated account session.

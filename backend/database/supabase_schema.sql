@@ -1,5 +1,5 @@
 -- ============================================================
--- BizzAI / AmiVest Supabase PostgreSQL Schema
+-- BizzAI / Kiro AI Supabase PostgreSQL Schema
 -- Run this script in the Supabase Dashboard -> SQL Editor
 -- ============================================================
 

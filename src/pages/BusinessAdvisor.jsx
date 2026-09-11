@@ -771,7 +771,7 @@ export default function BusinessAdvisor() {
     } catch (err) {
       console.error("Business Advisor error:", err);
       setError(
-        err.message || "Could not connect to AmiVest Business Advisor."
+        err.message || "Could not connect to Kiro AI Business Advisor."
       );
     } finally {
       setLoading(false);
@@ -1013,7 +1013,7 @@ export default function BusinessAdvisor() {
             </div>
 
             <div style={styles.commandHint}>
-              Start with your location. AmiVest builds the decision from
+              Start with your location. Kiro AI builds the decision from
               there.
             </div>
           </div>
@@ -1114,7 +1114,7 @@ export default function BusinessAdvisor() {
             <div style={styles.eyebrow}>02 · DECISION LAYERS</div>
             <h2 style={styles.sideTitle}>Everything that matters</h2>
             <p style={styles.sideText}>
-              AmiVest is designed to connect the business idea, local market
+              Kiro AI is designed to connect the business idea, local market
               and money decision instead of giving you a generic score.
             </p>
 
@@ -1142,14 +1142,14 @@ export default function BusinessAdvisor() {
               <div style={styles.insightIntro}>
                 <div style={styles.insightOrb}>✦</div>
                 <div>
-                  <div style={styles.eyebrow}>03 · AMIVEST INTELLIGENCE</div>
+                  <div style={styles.eyebrow}>03 · KIRO AI INTELLIGENCE</div>
                   <h2 style={styles.insightTitle}>
                     Your business decision workspace
                   </h2>
                   <p style={styles.insightText}>
                     Run an analysis above. The result area will become the
                     bridge between local evidence, business feasibility and
-                    the financial modules already present in AmiVest.
+                    the financial modules already present in Kiro AI.
                   </p>
                 </div>
               </div>
@@ -1185,7 +1185,7 @@ export default function BusinessAdvisor() {
 
         <footer style={styles.footer}>
           <div>
-            <strong>AmiVest</strong> · Business decision intelligence
+            <strong>Kiro AI</strong> · Business decision intelligence
           </div>
           <div>
             Evidence first · calculations separate from AI · uncertainty
@@ -1661,7 +1661,7 @@ function AnalysisResult({
 
         <div style={styles.resultBoxHighlight}>
           <div style={styles.resultBoxTitle}>
-            AMIVEST PRINCIPLE
+            KIRO AI PRINCIPLE
           </div>
 
           <p>
@@ -1872,7 +1872,7 @@ function LocalEvidencePanel({ evidence }) {
             Local business data is currently unavailable
           </strong>
           <p style={{ margin: "7px 0 0", color: "#8b7353", fontSize: 9, lineHeight: 1.55 }}>
-            AmiVest will not invent competitor counts. Try again later or validate the
+            Kiro AI will not invent competitor counts. Try again later or validate the
             location manually before making a business decision.
           </p>
         </div>
@@ -2182,7 +2182,7 @@ const styles = {
     background:
       "radial-gradient(circle, rgba(20,184,166,.18) 0%, rgba(20,184,166,0) 70%)",
     filter: "blur(18px)",
-    animation: "amivestFloat 10s ease-in-out infinite",
+    animation: "kiroFloat 10s ease-in-out infinite",
     pointerEvents: "none",
   },
 
@@ -2196,7 +2196,7 @@ const styles = {
     background:
       "radial-gradient(circle, rgba(16,185,129,.12) 0%, rgba(16,185,129,0) 72%)",
     filter: "blur(10px)",
-    animation: "amivestFloatReverse 12s ease-in-out infinite",
+    animation: "kiroFloatReverse 12s ease-in-out infinite",
     pointerEvents: "none",
   },
 
@@ -2288,7 +2288,7 @@ const styles = {
   hero: {
     padding: "48px 0 28px",
     maxWidth: 920,
-    animation: "amivestRise .7s ease both",
+    animation: "kiroRise .7s ease both",
   },
 
   heroKicker: {
@@ -2359,7 +2359,7 @@ const styles = {
     boxShadow:
       "0 22px 65px rgba(22,72,63,.10), inset 0 1px 0 rgba(255,255,255,.9)",
     backdropFilter: "blur(16px)",
-    animation: "amivestRise .8s .08s ease both",
+    animation: "kiroRise .8s .08s ease both",
     overflow: "hidden",
   },
 
@@ -2517,7 +2517,7 @@ const styles = {
     gridTemplateColumns: "repeat(4, 1fr)",
     gap: 10,
     marginTop: 14,
-    animation: "amivestRise .9s .14s ease both",
+    animation: "kiroRise .9s .14s ease both",
   },
 
   miniFeature: {
@@ -2557,7 +2557,7 @@ const styles = {
     background: "rgba(255,255,255,.80)",
     border: "1px solid rgba(21,67,61,.09)",
     boxShadow: "0 18px 55px rgba(24,73,65,.07)",
-    animation: "amivestRise 1s .2s ease both",
+    animation: "kiroRise 1s .2s ease both",
   },
 
   sidePanel: {
@@ -2567,7 +2567,7 @@ const styles = {
       "linear-gradient(145deg, rgba(16,44,50,.98), rgba(11,72,61,.98))",
     color: "#ffffff",
     boxShadow: "0 22px 65px rgba(12,47,42,.16)",
-    animation: "amivestRise 1s .28s ease both",
+    animation: "kiroRise 1s .28s ease both",
   },
 
   panelHeader: {
@@ -2875,7 +2875,7 @@ const styles = {
     borderRadius: "50%",
     background: "#eaf8f2",
     fontSize: 29,
-    animation: "amivestPulse 2s ease-in-out infinite",
+    animation: "kiroPulse 2s ease-in-out infinite",
   },
 
   mapBadge: {
@@ -3032,7 +3032,7 @@ const styles = {
     background: "rgba(255,255,255,.88)",
     border: "1px solid rgba(21,67,61,.09)",
     boxShadow: "0 18px 55px rgba(24,73,65,.06)",
-    animation: "amivestRise 1s .34s ease both",
+    animation: "kiroRise 1s .34s ease both",
   },
 
   insightIntro: {
@@ -3497,7 +3497,7 @@ const styles = {
 };
 
 const globalStyle = `
-@keyframes amivestRise {
+@keyframes kiroRise {
   from {
     opacity: 0;
     transform: translateY(18px);
@@ -3508,22 +3508,22 @@ const globalStyle = `
   }
 }
 
-@keyframes amivestFloat {
+@keyframes kiroFloat {
   0%, 100% { transform: translate(0,0) scale(1); }
   50% { transform: translate(-30px, 18px) scale(1.05); }
 }
 
-@keyframes amivestFloatReverse {
+@keyframes kiroFloatReverse {
   0%, 100% { transform: translate(0,0) scale(1); }
   50% { transform: translate(24px, -18px) scale(1.04); }
 }
 
-@keyframes amivestPulse {
+@keyframes kiroPulse {
   0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(17,174,126,.12); }
   50% { transform: scale(1.05); box-shadow: 0 0 0 13px rgba(17,174,126,0); }
 }
 
-.amivest-hover:hover {
+.kiro-hover:hover {
   transform: translateY(-3px);
 }
 
@@ -3541,14 +3541,14 @@ select:focus, input:focus {
 }
 
 @media (max-width: 1000px) {
-  .amivest-responsive-grid {
+  .kiro-responsive-grid {
     grid-template-columns: 1fr !important;
   }
 }
 `;
 
 if (typeof document !== "undefined") {
-  const styleId = "amivest-business-global-style";
+  const styleId = "kiro-business-global-style";
   if (!document.getElementById(styleId)) {
     const style = document.createElement("style");
     style.id = styleId;

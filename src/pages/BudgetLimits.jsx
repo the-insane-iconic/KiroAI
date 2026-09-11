@@ -635,7 +635,7 @@ export default function BudgetLimits() {
           </h3>
 
           <p style={helpText}>
-            AmiVest will monitor this category
+            Kiro AI will monitor this category
             throughout the month.
           </p>
 

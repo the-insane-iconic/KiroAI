@@ -353,7 +353,7 @@ const GOVERNMENT_SCHEMES = [
         documents: ["KYC / identity and address proof", "Business or activity details", "Bank statements / financial information requested by lender", "Project or working-capital details", "Lender-specific documents"],
         process: ["Select the appropriate MUDRA category.", "Choose an eligible lending institution.", "Submit KYC, activity and financial documents.", "Complete lender appraisal and verification.", "Track sanction and disbursement with the lender."],
         benefit: "Access to formal credit for eligible micro-enterprise activity; exact pricing and tenure are lender-specific.",
-        note: "AmiVest is a preliminary guidance layer. Final eligibility, pricing, sanction and disbursement are decided by the lender under current PMMY rules.",
+        note: "Kiro AI is a preliminary guidance layer. Final eligibility, pricing, sanction and disbursement are decided by the lender under current PMMY rules.",
       };
     },
   },
@@ -397,7 +397,7 @@ const GOVERNMENT_SCHEMES = [
         documents: ["Aadhaar / identity proof", "Photograph", "Project report / business details", "Education certificate where applicable", "Caste / special-category certificate where applicable", "Udyam registration as required", "Bank and project documents requested during appraisal"],
         process: ["Confirm the current PMEGP category and negative-list rules.", "Prepare project report and supporting documents.", "Apply through the official PMEGP portal.", "Implementing agency and bank perform appraisal / verification.", "Complete required training / verification steps and track the application."],
         benefit: "Bank-linked support with margin-money subsidy provisions for eligible new projects.",
-        note: "PMEGP has detailed project, activity, family, education and subsidy conditions. AmiVest should not present a final eligibility decision.",
+        note: "PMEGP has detailed project, activity, family, education and subsidy conditions. Kiro AI should not present a final eligibility decision.",
       };
     },
   },
@@ -554,7 +554,7 @@ const GOVERNMENT_SCHEMES = [
         documents: ["KYC / identity documents", "Vendor / business activity proof as applicable", "Bank account details", "Digital / e-KYC information as required", "Lender-specific documents"],
         process: ["Confirm vendor eligibility and current tranche status.", "Complete the official PM SVANidhi application / verification.", "Submit KYC and vending-activity evidence.", "Complete lender processing.", "Repay on time to access subsequent tranche benefits where applicable."],
         benefit: "Collateral-free working-capital support with interest subsidy and digital-transaction incentives under current rules.",
-        note: "AmiVest should show the current official tranche and status before treating this as an application-ready match.",
+        note: "Kiro AI should show the current official tranche and status before treating this as an application-ready match.",
       };
     },
   },
@@ -1086,7 +1086,7 @@ function GovernmentSchemes({ analysis }) {
 
         setResults(fallback);
         setOpenId(fallback[0]?.id || null);
-        setError("Showing AmiVest's local scheme catalogue. Please verify the final rules on the official scheme website.");
+        setError("Showing Kiro AI's local scheme catalogue. Please verify the final rules on the official scheme website.");
       }
     } catch (err) {
       const fallback = GOVERNMENT_SCHEMES
@@ -1128,7 +1128,7 @@ function GovernmentSchemes({ analysis }) {
         <SectionTitle
           icon="🇮🇳"
           title="Government Scheme Finder"
-          subtitle="Answer 6 simple questions. AmiVest will show the schemes that may suit you, their benefits, documents and official application website."
+          subtitle="Answer 6 simple questions. Kiro AI will show the schemes that may suit you, their benefits, documents and official application website."
         />
 
         <div
@@ -1734,7 +1734,7 @@ function InterviewWizard({ onComplete }) {
             margin: "7px 0 0",
           }}
         >
-          Answer a few questions and FinSaathi will prepare
+          Answer a few questions and Kiro AI will prepare
           an indicative loan analysis.
         </p>
       </div>
@@ -2139,7 +2139,7 @@ function InterviewWizard({ onComplete }) {
 
       {step === totalSteps - 1 && (
         <div style={{ marginTop: "16px", padding: "13px", background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.18)", borderRadius: "10px" }}>
-          <div style={{ color: COLORS.text, fontWeight: "800", fontSize: "12px" }}>🇮🇳 Want AmiVest to check government schemes too?</div>
+          <div style={{ color: COLORS.text, fontWeight: "800", fontSize: "12px" }}>🇮🇳 Want Kiro AI to check government schemes too?</div>
           <div style={{ color: COLORS.muted, fontSize: "10px", marginTop: "4px", lineHeight: 1.5 }}>You can compare government and private loan routes later in the Govt Schemes tab. This choice does not approve or submit a loan.</div>
         </div>
       )}
@@ -2294,7 +2294,7 @@ function Overview({ analysis }) {
                 marginBottom: "7px",
               }}
             >
-              FINSAATHI ASSESSMENT
+              KIRO AI ASSESSMENT
             </div>
 
             <div
@@ -2360,7 +2360,7 @@ function Overview({ analysis }) {
           <SectionTitle
             icon="📊"
             title="Risk score"
-            subtitle="Higher is generally better in this FinSaathi indicator."
+            subtitle="Higher is generally better in this Kiro AI indicator."
           />
 
           <div
@@ -2656,7 +2656,7 @@ function Recommendation({ analysis }) {
           lineHeight: "1.6",
         }}
       >
-        ℹ️ FinSaathi is providing educational and
+        ℹ️ Kiro AI is providing educational and
         indicative financial information. It does not guarantee
         loan approval or act as a lender.
       </div>
@@ -2957,7 +2957,7 @@ function Documents({ analysis }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
       <div style={cardStyle}>
-        <SectionTitle icon="📄" title="Smart document readiness" subtitle="Upload documents phase-by-phase. AmiVest records the document type, upload date, file checks and — when the backend supports it — AI verification results, extracted dates and detected fields." />
+        <SectionTitle icon="📄" title="Smart document readiness" subtitle="Upload documents phase-by-phase. Kiro AI records the document type, upload date, file checks and — when the backend supports it — AI verification results, extracted dates and detected fields." />
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(175px,1fr))", gap: "8px", marginBottom: "15px" }}>
           {phases.map((phase) => <button key={phase.id} type="button" onClick={() => setSelectedPhase(phase.id)} style={{ ...secondaryButton, textAlign: "left", background: selectedPhase === phase.id ? "rgba(13,148,136,0.14)" : COLORS.card2, borderColor: selectedPhase === phase.id ? COLORS.teal : COLORS.border }}><div style={{ fontSize: "17px" }}>{phase.icon}</div><div style={{ color: COLORS.text, fontWeight: 800, fontSize: "11px", marginTop: "4px" }}>{phase.label}</div><div style={{ color: COLORS.muted, fontSize: "9px", marginTop: "3px" }}>{phase.types.length} document types</div></button>)}
@@ -3018,7 +3018,7 @@ function Documents({ analysis }) {
 
       <div style={{ ...cardStyle, background: "rgba(245,158,11,0.04)" }}>
         <div style={{ color: "#FCD34D", fontWeight: 850, fontSize: "11px" }}>🔐 Privacy & authenticity</div>
-        <div style={{ color: COLORS.muted, fontSize: "10px", lineHeight: 1.6, marginTop: "5px" }}>Use this feature as a document-readiness assistant, not as an official KYC decision. Never edit or fabricate a document. When a value, date, identity or document type cannot be confidently verified, AmiVest should mark it for human / lender review.</div>
+        <div style={{ color: COLORS.muted, fontSize: "10px", lineHeight: 1.6, marginTop: "5px" }}>Use this feature as a document-readiness assistant, not as an official KYC decision. Never edit or fabricate a document. When a value, date, identity or document type cannot be confidently verified, Kiro AI should mark it for human / lender review.</div>
       </div>
     </div>
   );
@@ -3116,7 +3116,7 @@ function ApplyLoan() {
           lineHeight: "1.6",
         }}
       >
-        🔐 Safety tip: FinSaathi will never ask you to pay
+        🔐 Safety tip: Kiro AI will never ask you to pay
         an upfront fee to unlock a loan. Check the lender&apos;s
         official terms before submitting personal documents.
       </div>
@@ -3953,7 +3953,7 @@ export default function LoanAssistant({
               marginBottom: "5px",
             }}
           >
-            FINSAATHI AI
+            KIRO AI AI
           </div>
 
           <h1
@@ -4287,7 +4287,7 @@ export default function LoanAssistant({
                 lineHeight: "1.6",
               }}
             >
-              Disclaimer: Loan and government-scheme eligibility, interest rates, approval, tenure, subsidy, charges and documentation are determined by the applicable authority/lender under current rules. FinSaathi provides indicative guidance and does not guarantee approval.
+              Disclaimer: Loan and government-scheme eligibility, interest rates, approval, tenure, subsidy, charges and documentation are determined by the applicable authority/lender under current rules. Kiro AI provides indicative guidance and does not guarantee approval.
             </div>
           </>
         )}

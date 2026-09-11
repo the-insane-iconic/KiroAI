@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 
 // =========================================================
-// AMIVEST AI HEADER & SUBSCRIPTION MANAGEMENT SYSTEM
+// KIRO AI HEADER & SUBSCRIPTION MANAGEMENT SYSTEM
 // Fully dynamic profile matching logged-in local storage metadata
 // =========================================================
  
 export default function Header({ searchQuery = "", setSearchQuery = () => {} }) {
   // Dynamic user data state variables
   const [userName, setUserName] = useState("Guest");
-  const [userEmail, setUserEmail] = useState("guest@amivest.ai");
+  const [userEmail, setUserEmail] = useState("guest@kiroai.io");
   const [userInitial, setUserInitial] = useState("G");
 
   // Plan management states
@@ -30,7 +30,7 @@ export default function Header({ searchQuery = "", setSearchQuery = () => {} }) 
         const parsedUser = JSON.parse(storedUser);
         const name = parsedUser?.name || "Guest";
         setUserName(name);
-        setUserEmail(parsedUser?.email || "user@amivest.ai");
+        setUserEmail(parsedUser?.email || "user@kiroai.io");
         
         // Grab first letter dynamically for the circle avatar hook
         if (name && name.length > 0) {
@@ -46,11 +46,11 @@ export default function Header({ searchQuery = "", setSearchQuery = () => {} }) 
     }
 
     // 2. Synchronize active premium vs free tier tracking arrays
-    const savedPlan = localStorage.getItem("amivest_user_plan");
+    const savedPlan = localStorage.getItem("kiro_user_plan");
     if (savedPlan) {
       setCurrentPlan(savedPlan);
     } else {
-      localStorage.setItem("amivest_user_plan", "premium");
+      localStorage.setItem("kiro_user_plan", "premium");
     }
   }, []);
 
@@ -64,8 +64,8 @@ export default function Header({ searchQuery = "", setSearchQuery = () => {} }) 
       setIsProcessingPayment(false);
       setShowCheckoutModal(false);
       setCurrentPlan("premium");
-      localStorage.setItem("amivest_user_plan", "premium");
-      setPaymentSuccessMsg("🎉 Welcome to AmiVest AI Premium! ₹299 payment successful.");
+      localStorage.setItem("kiro_user_plan", "premium");
+      setPaymentSuccessMsg("🎉 Welcome to Kiro AI Premium! ₹299 payment successful.");
       setTimeout(() => setPaymentSuccessMsg(""), 5000);
     }, 1500);
   };
@@ -73,7 +73,7 @@ export default function Header({ searchQuery = "", setSearchQuery = () => {} }) 
   const handleDowngradeToFree = () => {
     if (window.confirm("Are you sure you want to downgrade to the Free plan? You will lose Siri-Grade Voice features & Advanced Investment insights.")) {
       setCurrentPlan("free");
-      localStorage.setItem("amivest_user_plan", "free");
+      localStorage.setItem("kiro_user_plan", "free");
       setPaymentSuccessMsg("Plan downgraded to Free Tier.");
       setTimeout(() => setPaymentSuccessMsg(""), 4000);
     }
@@ -117,7 +117,7 @@ export default function Header({ searchQuery = "", setSearchQuery = () => {} }) 
               gap: "8px",
             }}
           >
-            AmiVest AI
+            Kiro AI
             <span
               style={{
                 fontSize: "11px",
@@ -415,7 +415,7 @@ export default function Header({ searchQuery = "", setSearchQuery = () => {} }) 
 
             {/* Subscription Section Header Context */}
             <div style={{ textAlign: "center", marginBottom: "22px" }}>
-              <h3 style={{ margin: 0, fontSize: "22px", fontWeight: "900" }}>Choose Your AmiVest AI Plan</h3>
+              <h3 style={{ margin: 0, fontSize: "22px", fontWeight: "900" }}>Choose Your Kiro AI Plan</h3>
               <p style={{ margin: "6px 0 0 0", color: "#9CA3AF", fontSize: "13px" }}>
                 Unlock Siri-Grade voice assistance, unlimited statement analysis, and automated investment advice.
               </p>
@@ -460,7 +460,7 @@ export default function Header({ searchQuery = "", setSearchQuery = () => {} }) 
                       <span style={{ color: emeraldCol }}>✔</span> Basic AI Chatbot Assistance
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", opacity: 0.4 }}>
-                      <span>✕</span> <span style={{ textDecoration: "line-through" }}>Siri-Grade Voice Assistant ("Hey AmiVest")</span>
+                      <span>✕</span> <span style={{ textDecoration: "line-through" }}>Siri-Grade Voice Assistant ("Hey Kiro AI")</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", opacity: 0.4 }}>
                       <span>✕</span> <span style={{ textDecoration: "line-through" }}>Groww In-App Mutual Funds Store</span>
@@ -523,7 +523,7 @@ export default function Header({ searchQuery = "", setSearchQuery = () => {} }) 
 
                 <div>
                   <div style={{ fontSize: "12px", color: emeraldCol, fontWeight: "800", textTransform: "uppercase" }}>
-                    AmiVest AI Pro ⭐
+                    Kiro AI Pro ⭐
                   </div>
                   <div style={{ fontSize: "28px", fontWeight: "900", color: "#fff", margin: "10px 0 4px 0" }}>
                     ₹299 <span style={{ fontSize: "13px", color: "#9CA3AF", fontWeight: "500" }}>/ month</span>
@@ -538,7 +538,7 @@ export default function Header({ searchQuery = "", setSearchQuery = () => {} }) 
                       <span style={{ color: emeraldCol }}>⚡</span> <strong>Unlimited</strong> Bank Statement OCR Uploads
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ color: emeraldCol }}>⚡</span> <strong>Siri-Grade Voice Assistant</strong> ("Hey AmiVest")
+                      <span style={{ color: emeraldCol }}>⚡</span> <strong>Siri-Grade Voice Assistant</strong> ("Hey Kiro AI")
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       <span style={{ color: emeraldCol }}>⚡</span> <strong>Groww Mutual Fund Store</strong> & SIP Projections
@@ -613,7 +613,7 @@ export default function Header({ searchQuery = "", setSearchQuery = () => {} }) 
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
-              <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "800" }}>Upgrade to AmiVest Premium</h3>
+              <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "800" }}>Upgrade to Kiro AI Premium</h3>
               <button
                 onClick={() => setShowCheckoutModal(false)}
                 style={{ background: "none", border: "none", color: "#9CA3AF", cursor: "pointer", fontSize: "16px" }}
@@ -636,7 +636,7 @@ export default function Header({ searchQuery = "", setSearchQuery = () => {} }) 
               }}
             >
               <div>
-                <div style={{ fontSize: "14px", fontWeight: "800" }}>AmiVest AI Pro Plan</div>
+                <div style={{ fontSize: "14px", fontWeight: "800" }}>Kiro AI Pro Plan</div>
                 <div style={{ fontSize: "11px", color: "#9CA3AF", marginTop: "2px" }}>Monthly recurring subscription</div>
               </div>
               <div style={{ fontSize: "20px", fontWeight: "900", color: emeraldCol }}>₹299</div>

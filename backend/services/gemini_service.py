@@ -24,7 +24,7 @@ client = Groq(api_key=API_KEY)
 MODEL = "llama-3.3-70b-versatile"
 
 SYSTEM_PROMPT = """
-You are Amivest AI.
+You are Kiro AI.
 
 You are a helpful financial assistant.
 
