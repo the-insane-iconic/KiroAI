@@ -25,52 +25,47 @@ def get_current_user_id():
 # =========================================================
 
 def ensure_transactions_table(conn):
-
     cursor = conn.cursor()
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS transactions (
+    is_sqlite = hasattr(conn, "_conn") or "sqlite" in type(conn).__name__.lower()
 
-            id INT AUTO_INCREMENT PRIMARY KEY,
-
-            user_id INT NOT NULL,
-
-            type VARCHAR(30)
-                NOT NULL
-                DEFAULT 'expense',
-
-            category VARCHAR(100)
-                NOT NULL,
-
-            amount DECIMAL(12,2)
-                NOT NULL,
-
-            description VARCHAR(255),
-
-            transaction_date DATE
-                NOT NULL,
-
-            created_at TIMESTAMP
-                DEFAULT CURRENT_TIMESTAMP,
-
-            INDEX idx_transaction_user (
-                user_id
-            ),
-
-            INDEX idx_transaction_date (
-                transaction_date
-            ),
-
-            INDEX idx_transaction_category (
-                user_id,
-                category
+    if is_sqlite:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS transactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                type TEXT NOT NULL DEFAULT 'expense',
+                category TEXT NOT NULL,
+                amount REAL NOT NULL,
+                description TEXT,
+                transaction_date TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
-
-        )
-    """)
+        """)
+        try:
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_transaction_user ON transactions(user_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_transaction_date ON transactions(transaction_date)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_transaction_category ON transactions(user_id, category)")
+        except Exception:
+            pass
+    else:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS transactions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                type VARCHAR(30) NOT NULL DEFAULT 'expense',
+                category VARCHAR(100) NOT NULL,
+                amount DECIMAL(12,2) NOT NULL,
+                description VARCHAR(255),
+                transaction_date DATE NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_transaction_user (user_id),
+                INDEX idx_transaction_date (transaction_date),
+                INDEX idx_transaction_category (user_id, category)
+            )
+        """)
 
     conn.commit()
-
     cursor.close()
 
 

@@ -2,24 +2,44 @@ import { useState, useEffect, useRef } from "react";
 
 // ==========================================
 // SYSTEM CONFIGURATION
-// Local: Vite proxy -> http://127.0.0.1:5000
-// Production: Vercel /api -> Render backend
 // ==========================================
-const BACKEND_PORT = "5000";
-const API_BASE = import.meta.env.PROD ? "/api" : ""; 
+const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:5001";
 
-/**
- * Clean and convert raw currency strings (e.g. "₹106,198.00" or "15,000") 
- * into accurate mathematical floats to avoid standard JavaScript parsing truncation.
- */
 const cleanNumericString = (val) => {
   if (val === undefined || val === null) return 0;
   if (typeof val === "number") return val;
-  // Remove currency signs, commas, and spaces, leaving only numbers, decimals, and minus signs
   const cleaned = String(val).replace(/[^\d.-]/g, "");
   const parsed = parseFloat(cleaned);
   return isNaN(parsed) ? 0 : parsed;
 };
+
+const getUserName = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    return user?.name?.split(" ")[0] || "Friend";
+  } catch (_) {
+    return "Friend";
+  }
+};
+
+const getCurrentUserId = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    return user?.id || user?.user_id || 1;
+  } catch (_) {
+    return 1;
+  }
+};
+
+const QUICK_CHIPS = [
+  { label: "💸 Spent ₹450 on Lunch", text: "Spent ₹450 on lunch" },
+  { label: "💵 Salary ₹45,000 Received", text: "Salary ₹45000 received" },
+  { label: "📋 Plan My Finances", text: "Make a personalized financial plan for me" },
+  { label: "🎯 Save ₹50,000 for Emergency", text: "Create a goal to save ₹50,000 for emergency fund in 6 months" },
+  { label: "📊 Set ₹5,000 Food Budget", text: "Set monthly budget for food to ₹5,000" },
+  { label: "🗑️ Delete Last Transaction", text: "Delete last transaction" },
+  { label: "💳 What is my balance?", text: "What is my current balance and financial status?" },
+];
 
 function ChatBot({
   transactions: propTransactions,
@@ -28,12 +48,16 @@ function ChatBot({
   totalExpenses: dashboardTotalExpenses,
   netSavings: dashboardNetSavings,
 }) {
-  const [messages, setMessages] = useState([
-    {
-      who: "ai",
-      text: "👋 Namaste! Main Amivest AI hoon.\n\nMain aapke transactions, goals aur financial data ke basis par personalized advice de sakta hoon. Aap Hindi ya English dono mein baat kar sakte hain. 💰",
-    },
-  ]);
+  const [userName, setUserName] = useState(() => getUserName());
+  const [messages, setMessages] = useState(() => {
+    const name = getUserName();
+    return [
+      {
+        who: "ai",
+        text: `👋 Namaste ${name}! Main AmiVest AI financial co-pilot hoon.\n\nMain aapke backend database se directly connected hoon:\n• 💸 **Kharche jod sakte hain:** 'Spent ₹450 on lunch'\n• 💵 **Income record karein:** 'Salary ₹40,000 received'\n• 🗑️ **Transactions delete karein:** 'Delete last transaction'\n• 🎯 **Goals banayein:** 'Save ₹50,000 for emergency'\n• 📋 **Personalized plan:** 'Plan my finances'\n\nAap Hindi, English ya Hinglish me baat kar sakte hain! 💰`,
+      },
+    ];
+  });
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,8 +68,11 @@ function ChatBot({
 
   const messagesEndRef = useRef(null);
 
-  // Fallback-only calculation. Only used when the Dashboard hasn't passed
-  // totalIncome/totalExpenses/netSavings props down to this component.
+  // Sync user name if localStorage updates
+  useEffect(() => {
+    setUserName(getUserName());
+  }, []);
+
   const calculateFinancials = (items) => {
     let income = 0;
     let expenses = 0;
@@ -56,9 +83,7 @@ function ChatBot({
       const amount = Math.abs(numericAmount);
       const rawType = String(t.type || "").toLowerCase().trim();
 
-      // IMPORTANT: this must stay identical to Dashboard.jsx's formula so the
-      // two screens can never disagree on the same transaction data.
-      const isCredit = numericAmount > 0 || rawType === "credit";
+      const isCredit = numericAmount > 0 || rawType === "credit" || rawType === "income";
 
       if (isCredit) {
         income += amount;
@@ -74,8 +99,6 @@ function ChatBot({
     };
   };
 
-  // Prefer the props coming straight from the Dashboard. Only fall
-  // back to local recalculation if the Dashboard didn't pass them in.
   const usingDashboardValues =
     dashboardTotalIncome !== undefined &&
     dashboardTotalExpenses !== undefined &&
@@ -87,25 +110,23 @@ function ChatBot({
   const totalExpenses = usingDashboardValues ? dashboardTotalExpenses : fallbackCalc.totalExpenses;
   const netSavings = usingDashboardValues ? dashboardNetSavings : fallbackCalc.netSavings;
 
-  // Pulls transaction logs from Vite proxy gateway endpoint
   const syncTransactions = async () => {
     setSyncStatus("syncing");
-    
+
     try {
       const response = await fetch(`${API_BASE}/transactions`, { method: "GET", credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         let fetchedList = [];
-        
+
         if (Array.isArray(data)) {
           fetchedList = data;
         } else if (data.transactions && Array.isArray(data.transactions)) {
           fetchedList = data.transactions;
         }
 
-        if (fetchedList.length > 0) {
+        if (fetchedList.length >= 0) {
           setLocalTransactions(fetchedList);
-          
           localStorage.setItem("amivest_transactions", JSON.stringify(fetchedList));
           localStorage.setItem("transactions", JSON.stringify(fetchedList));
 
@@ -113,79 +134,23 @@ function ChatBot({
             propSetTransactions(fetchedList);
           }
           setSyncStatus("success");
-          setTimeout(() => setSyncStatus("idle"), 3000);
+          setTimeout(() => setSyncStatus("idle"), 2500);
           return;
         }
       }
-      throw new Error("Invalid structure received from endpoint lookup");
+      throw new Error("Invalid structure from endpoint");
     } catch (err) {
-      console.error(err);
-      const fallbackCached = retrieveLocalData();
-      if (fallbackCached && fallbackCached.length > 0) {
-        setLocalTransactions(fallbackCached);
-        setSyncStatus("success");
-      } else {
-        setSyncStatus("error");
-      }
-      setTimeout(() => setSyncStatus("idle"), 4000);
+      console.error("Sync error:", err);
+      setSyncStatus("error");
+      setTimeout(() => setSyncStatus("idle"), 3000);
     }
   };
-
-  const retrieveLocalData = () => {
-    const backupKeys = ["transactions", "finsaathi_transactions", "dashboard_transactions"];
-    for (const key of backupKeys) {
-      const data = localStorage.getItem(key);
-      if (data) {
-        try {
-          const parsed = JSON.parse(data);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed;
-          }
-        } catch (_) {}
-      }
-    }
-    return null;
-  };
-
-  // Get the currently logged-in user's ID.
-  const getCurrentUserId = () => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "null");
-      return user?.id || user?.user_id || 1;
-    } catch (_) {
-      return 1;
-    }
-  };
-
-  // Load saved conversation using the local Vite proxy or production /api proxy.
-  useEffect(() => {
-    const loadHistory = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/chat/history?user_id=${getCurrentUserId()}`, { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && Array.isArray(data.messages) && data.messages.length > 0) {
-            setMessages((prev) => [...prev, ...data.messages]);
-          }
-        }
-      } catch (err) {
-        console.error("Error loading conversation history via proxy:", err);
-      }
-    };
-    loadHistory();
-  }, []);
 
   useEffect(() => {
     if (propTransactions && propTransactions.length > 0) {
       setLocalTransactions(propTransactions);
       return;
     }
-
-    const initialCache = retrieveLocalData();
-    if (initialCache && initialCache.length > 0) {
-      setLocalTransactions(initialCache);
-    }
-
     syncTransactions();
   }, [propTransactions]);
 
@@ -199,13 +164,13 @@ function ChatBot({
       setIsSpeaking(false);
       setSpeakingIndex(null);
 
-      const cleanText = text.replace(/[👋💰❌🤖📊🎯📈⚖💸🛡*`#_]/g, "").trim();
+      const cleanText = text.replace(/[👋💰❌🤖📊🎯📈⚖💸🛡*`#_•]/g, "").trim();
       if (!cleanText) return;
 
       const utterance = new SpeechSynthesisUtterance(cleanText);
       const voices = window.speechSynthesis.getVoices();
-      
-      const isHindi = /[\u0900-\u097F]/.test(text) || /\b(main|aap|hai|hoon|bhi|kar|sakte|ho|hai|ka|ke|ki|aur)\b/i.test(text);
+
+      const isHindi = /[\u0900-\u097F]/.test(text) || /\b(main|aap|hai|hoon|bhi|kar|sakte|ho|ka|ke|ki|aur|karein|kharcha)\b/i.test(text);
 
       if (voices && voices.length > 0) {
         if (isHindi) {
@@ -213,7 +178,7 @@ function ChatBot({
           if (hiVoice) utterance.voice = hiVoice;
           utterance.lang = "hi-IN";
         } else {
-          const enVoice = voices.find((v) => v.lang.includes("en-IN") || v.lang.includes("en-US") || v.lang.includes("en-GB") || v.lang.includes("en"));
+          const enVoice = voices.find((v) => v.lang.includes("en-IN") || v.lang.includes("en-US") || v.lang.includes("en-GB"));
           if (enVoice) utterance.voice = enVoice;
           utterance.lang = "en-US";
         }
@@ -229,15 +194,13 @@ function ChatBot({
         setSpeakingIndex(null);
       };
 
-      utterance.onerror = (err) => {
-        console.error("Speech Synthesis run failure:", err);
+      utterance.onerror = () => {
         setIsSpeaking(false);
         setSpeakingIndex(null);
       };
 
       window.speechSynthesis.speak(utterance);
-    } catch (speechErr) {
-      console.error("Critical Speech Engine Lockup:", speechErr);
+    } catch (err) {
       setIsSpeaking(false);
       setSpeakingIndex(null);
     }
@@ -249,22 +212,21 @@ function ChatBot({
     setSpeakingIndex(null);
   };
 
-  const send = async () => {
-    if (!input.trim()) return;
+  const send = async (overrideText) => {
+    const question = typeof overrideText === "string" ? overrideText.trim() : input.trim();
+    if (!question) return;
 
-    const question = input;
     setMessages((prev) => [...prev, { who: "user", text: question }]);
-    setInput("");
+    if (typeof overrideText !== "string") {
+      setInput("");
+    }
     setLoading(true);
 
-    const condensedTransactions = localTransactions.slice(-10);
-
-    const promptWithDashboardContext = `[SYSTEM CONTEXT: The user's active dashboard displays these exact values: Total Deposits (Income) = ₹${totalIncome.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}, Total Outflows (Expenses) = ₹${totalExpenses.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}, and Net Wallet Savings (Surplus) = ₹${netSavings.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. There are currently ${localTransactions.length} transactions loaded. You MUST use these exact numbers to answer any questions about the user's balance, income, or expenses. Do not hallucinate or state other metrics.]\n\nUser Question: ${question}`;
-
-    const payloadContext = {
+    const payload = {
       user_id: getCurrentUserId(),
-      message: promptWithDashboardContext,
-      conversation_history: messages.map((m) => ({
+      user_name: userName,
+      message: question,
+      conversation_history: messages.slice(-6).map((m) => ({
         role: m.who === "user" ? "user" : "assistant",
         message: m.text,
       })),
@@ -272,15 +234,7 @@ function ChatBot({
         total_income: totalIncome,
         total_expenses: totalExpenses,
         net_savings: netSavings,
-        total_record_count: localTransactions.length,
       },
-      transactions_context: condensedTransactions.map((t) => ({
-        date: t.transaction_date || t.date || "",
-        description: t.description || "",
-        amount: cleanNumericString(t.amount),
-        type: t.type || "",
-        category: t.category || "Other",
-      })),
     };
 
     try {
@@ -288,24 +242,35 @@ function ChatBot({
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payloadContext),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        throw new Error(`Server returned status code: ${response.status}`);
+        throw new Error(`Server status: ${response.status}`);
       }
 
       const data = await response.json();
       const aiResponse = data.reply || data.response || data.message || "No response received.";
-      setMessages((prev) => [...prev, { who: "ai", text: aiResponse }]);
-    } catch (err) {
-      console.error(err);
 
       setMessages((prev) => [
         ...prev,
         {
           who: "ai",
-          text: `❌ Error: ${err.message}`,
+          text: aiResponse,
+          action: data.action_performed,
+        },
+      ]);
+
+      // If backend performed an action, auto sync ledger immediately!
+      if (data.action_performed) {
+        syncTransactions();
+      }
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          who: "ai",
+          text: `❌ Connection error: ${err.message}. Please verify the backend is running.`,
         },
       ]);
     } finally {
@@ -315,51 +280,64 @@ function ChatBot({
 
   return (
     <div style={{ width: "100%", padding: "10px", boxSizing: "border-box" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-        <h1 style={{ fontSize: "24px", fontWeight: "bold", color: "#fff", margin: 0 }}>
-          💬 FinSaathi AI Chatbot
-        </h1>
-        
+      {/* Top Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
+        <div>
+          <h1 style={{ fontSize: "22px", fontWeight: "bold", color: "var(--text-h)", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+            <span>🤖</span> AmiVest AI Financial Assistant
+          </h1>
+          <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "3px" }}>
+            Personalized co-pilot with direct access to your financial ledger & goals
+          </div>
+        </div>
+
         <button
           onClick={syncTransactions}
           disabled={syncStatus === "syncing"}
           style={{
-            background: syncStatus === "syncing" ? "#1E3A5F" : "#0D9488",
+            background: syncStatus === "syncing" ? "var(--surface-soft)" : "linear-gradient(90deg, var(--primary), var(--primary-accent))",
             color: "#fff",
             border: "none",
-            borderRadius: "6px",
+            borderRadius: "10px",
             padding: "8px 16px",
-            fontSize: "13px",
+            fontSize: "12px",
             cursor: "pointer",
             fontWeight: "bold",
             transition: "all 0.2s",
             display: "flex",
             alignItems: "center",
-            gap: "6px"
+            gap: "6px",
+            boxShadow: "var(--shadow-sm)",
           }}
         >
           {syncStatus === "syncing" && "🔄 Syncing Ledger..."}
-          {syncStatus === "success" && "✅ Dashboard Synced!"}
+          {syncStatus === "success" && "✅ Ledger Synced!"}
           {syncStatus === "error" && "⚠️ Sync Error"}
           {syncStatus === "idle" && "🔄 Sync Dashboard Data"}
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "20px", height: "80vh" }}>
+      {/* Main Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "20px", minHeight: "75vh" }}>
+        {/* Chat Box Shell */}
         <div
           style={{
-            background: "#0D2D4A",
-            borderRadius: "14px",
+            background: "var(--surface)",
+            borderRadius: "18px",
             display: "flex",
             flexDirection: "column",
-            border: "1px solid #1E3A5F",
-            overflow: "hidden"
+            border: "1px solid var(--border)",
+            boxShadow: "var(--shadow-md)",
+            overflow: "hidden",
+            transition: "all 0.28s ease",
           }}
         >
+          {/* Chat Window Header */}
           <div
             style={{
-              padding: "18px 24px",
-              borderBottom: "1px solid #1E3A5F",
+              padding: "14px 20px",
+              borderBottom: "1px solid var(--border)",
+              background: "var(--surface-soft)",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
@@ -368,33 +346,35 @@ function ChatBot({
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
               <div
                 style={{
-                  background: "#0D9488",
+                  background: "linear-gradient(135deg, var(--primary), var(--primary-accent))",
                   borderRadius: "50%",
-                  width: "42px",
-                  height: "42px",
+                  width: "36px",
+                  height: "36px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "18px"
+                  fontSize: "16px",
+                  color: "#fff",
+                  boxShadow: "0 2px 8px var(--glow)",
                 }}
               >
-                🤖
+                ✦
               </div>
               <div>
-                <div style={{ color: "#fff", fontSize: "15px", fontWeight: "bold" }}>
-                  FinSaathi AI
-                </div>
-                <div style={{ color: "#10B981", fontSize: "12px", marginTop: "2px" }}>
-                  ● Connected to {import.meta.env.PROD ? "Production API" : `Port ${BACKEND_PORT}`}
+                <div style={{ fontWeight: "700", fontSize: "14px", color: "var(--text-h)" }}>AmiVest AI Co-Pilot</div>
+                <div style={{ fontSize: "11px", color: "#10B981", display: "flex", alignItems: "center", gap: "4px" }}>
+                  <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#10B981" }} />
+                  Connected to Database • Live Mode
                 </div>
               </div>
             </div>
 
-            <div style={{ color: "#94A3B8", fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
-              📊 Scanning {localTransactions.length} Transactions
+            <div style={{ fontSize: "11px", color: "var(--muted)", background: "var(--surface)", padding: "4px 10px", borderRadius: "8px", border: "1px solid var(--border)" }}>
+              User: <strong style={{ color: "var(--text-h)" }}>{userName}</strong>
             </div>
           </div>
 
+          {/* Message Stream */}
           <div
             style={{
               flex: 1,
@@ -410,37 +390,92 @@ function ChatBot({
                 key={i}
                 style={{
                   display: "flex",
-                  justifyContent: m.who === "user" ? "flex-end" : "flex-start",
+                  flexDirection: "column",
+                  alignItems: m.who === "user" ? "flex-end" : "flex-start",
                 }}
               >
                 <div
                   style={{
-                    maxWidth: "75%",
-                    padding: "12px 18px",
-                    borderRadius: "14px",
-                    fontSize: "15px",
+                    maxWidth: "80%",
+                    padding: "14px 18px",
+                    borderRadius: "16px",
+                    fontSize: "14px",
                     lineHeight: "1.6",
                     whiteSpace: "pre-wrap",
-                    background: m.who === "user" ? "#0D9488" : "#1E3A5F",
-                    color: "#fff",
+                    background: m.who === "user" ? "linear-gradient(135deg, var(--primary-accent), var(--primary))" : "var(--surface-soft)",
+                    color: m.who === "user" ? "#FFFFFF" : "var(--text-h)",
+                    border: "1px solid var(--border)",
+                    boxShadow: "var(--shadow-sm)",
                   }}
                 >
                   {m.text}
 
+                  {/* Visual Action Confirmation Card */}
+                  {m.action && (
+                    <div
+                      style={{
+                        marginTop: "12px",
+                        padding: "10px 14px",
+                        borderRadius: "10px",
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                        fontSize: "12px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        {m.action.type === "add_expense" && <span style={{ fontSize: "16px" }}>💸</span>}
+                        {m.action.type === "add_income" && <span style={{ fontSize: "16px" }}>💵</span>}
+                        {m.action.type === "delete_transaction" && <span style={{ fontSize: "16px" }}>🗑️</span>}
+                        {m.action.type === "add_goal" && <span style={{ fontSize: "16px" }}>🎯</span>}
+                        {m.action.type === "set_budget" && <span style={{ fontSize: "16px" }}>📊</span>}
+                        {m.action.type === "plan" && <span style={{ fontSize: "16px" }}>📋</span>}
+                        <div>
+                          <strong style={{ color: "var(--text-h)" }}>Backend Action Executed: </strong>
+                          <span style={{ color: "var(--primary-accent)", textTransform: "capitalize" }}>
+                            {m.action.type.replace("_", " ")}
+                          </span>
+                        </div>
+                      </div>
+
+                      {m.action.type === "add_expense" && (
+                        <button
+                          onClick={() => send("Delete last transaction")}
+                          style={{
+                            background: "rgba(239, 68, 68, 0.12)",
+                            border: "1px solid rgba(239, 68, 68, 0.3)",
+                            color: "#EF4444",
+                            borderRadius: "6px",
+                            padding: "3px 8px",
+                            fontSize: "11px",
+                            cursor: "pointer",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          Undo ✕
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Speech button */}
                   {m.who === "ai" && (
-                    <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                    <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
                       <button
                         onClick={() => speakMessage(m.text, i)}
                         style={{
                           display: "flex",
                           alignItems: "center",
                           gap: "4px",
-                          background: isSpeaking && speakingIndex === i ? "#071829" : "rgba(255, 255, 255, 0.12)",
-                          border: isSpeaking && speakingIndex === i ? "1px solid #0D9488" : "none",
-                          color: isSpeaking && speakingIndex === i ? "#10B981" : "#E2E8F0",
+                          background: isSpeaking && speakingIndex === i ? "var(--surface)" : "var(--surface)",
+                          border: isSpeaking && speakingIndex === i ? "1px solid var(--primary-accent)" : "1px solid var(--border)",
+                          color: isSpeaking && speakingIndex === i ? "var(--primary-accent)" : "var(--muted)",
                           borderRadius: "6px",
-                          padding: "6px 12px",
-                          fontSize: "12px",
+                          padding: "4px 10px",
+                          fontSize: "11px",
                           cursor: "pointer",
                           fontWeight: "bold",
                           transition: "all 0.2s",
@@ -456,15 +491,14 @@ function ChatBot({
                             display: "flex",
                             alignItems: "center",
                             gap: "4px",
-                            background: "rgba(239, 68, 68, 0.2)",
+                            background: "rgba(239, 68, 68, 0.15)",
                             border: "1px solid rgba(239, 68, 68, 0.4)",
-                            color: "#FCA5A5",
+                            color: "#EF4444",
                             borderRadius: "6px",
-                            padding: "6px 12px",
-                            fontSize: "12px",
+                            padding: "4px 10px",
+                            fontSize: "11px",
                             cursor: "pointer",
                             fontWeight: "bold",
-                            transition: "all 0.2s",
                           }}
                         >
                           ⏹ Stop
@@ -480,59 +514,112 @@ function ChatBot({
               <div style={{ display: "flex", justifyContent: "flex-start" }}>
                 <div
                   style={{
-                    background: "#1E3A5F",
+                    background: "var(--surface-soft)",
+                    border: "1px solid var(--border)",
                     padding: "12px 18px",
                     borderRadius: "14px",
-                    color: "#94A3B8",
-                    fontSize: "14px",
+                    color: "var(--muted)",
+                    fontSize: "13px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
                   }}
                 >
-                  🤖 FinSaathi AI is calculating insights...
+                  <span className="av-pulse">⏳</span> AmiVest AI is accessing backend & processing...
                 </div>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Quick Suggestion Chips */}
           <div
             style={{
-              padding: "18px",
-              borderTop: "1px solid #1E3A5F",
+              padding: "8px 18px",
+              borderTop: "1px solid var(--border)",
+              background: "var(--surface)",
               display: "flex",
-              gap: "12px",
-              background: "#071829"
+              gap: "6px",
+              overflowX: "auto",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {QUICK_CHIPS.map((chip, idx) => (
+              <button
+                key={idx}
+                onClick={() => send(chip.text)}
+                style={{
+                  background: "var(--surface-soft)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "999px",
+                  padding: "5px 12px",
+                  fontSize: "11.5px",
+                  color: "var(--text-h)",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                  transition: "all 0.15s ease",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "var(--primary-accent)";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "var(--border)";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Input Box */}
+          <div
+            style={{
+              padding: "16px 18px",
+              borderTop: "1px solid var(--border)",
+              display: "flex",
+              gap: "10px",
+              background: "var(--surface-soft)",
             }}
           >
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") send();
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
               }}
-              placeholder="Ex: What is my current savings balance?"
+              placeholder="Type anything (e.g. 'Spent ₹350 on petrol' or 'Plan my month')..."
               style={{
                 flex: 1,
-                background: "#0D2D4A",
-                border: "1px solid #1E3A5F",
-                borderRadius: "8px",
                 padding: "12px 16px",
-                color: "#fff",
-                fontSize: "15px",
+                borderRadius: "10px",
+                border: "1px solid var(--border)",
+                background: "var(--surface)",
+                color: "var(--text-h)",
+                fontSize: "14px",
                 outline: "none",
               }}
             />
 
             <button
-              onClick={send}
+              onClick={() => send()}
+              disabled={loading || !input.trim()}
               style={{
-                background: "#0D9488",
-                border: "none",
-                borderRadius: "8px",
-                padding: "12px 24px",
-                color: "#fff",
-                fontSize: "15px",
+                background: !input.trim() || loading ? "var(--surface)" : "linear-gradient(90deg, var(--primary), var(--primary-accent))",
+                border: "1px solid var(--border)",
+                borderRadius: "10px",
+                padding: "12px 22px",
+                color: !input.trim() || loading ? "var(--muted)" : "#fff",
+                fontSize: "14px",
                 fontWeight: "bold",
-                cursor: "pointer",
+                cursor: !input.trim() || loading ? "default" : "pointer",
+                transition: "all 0.18s ease",
+                boxShadow: !input.trim() || loading ? "none" : "var(--shadow-sm)",
               }}
             >
               Send ➤
@@ -540,56 +627,72 @@ function ChatBot({
           </div>
         </div>
 
+        {/* Live Dashboard HUD Sidebar */}
         <div
           style={{
-            background: "#0D2D4A",
-            borderRadius: "14px",
-            padding: "24px",
-            border: "1px solid #1E3A5F",
+            background: "var(--surface)",
+            borderRadius: "18px",
+            padding: "20px",
+            border: "1px solid var(--border)",
+            boxShadow: "var(--shadow-md)",
             display: "flex",
             flexDirection: "column",
-            justifyContent: "space-between"
+            justifyContent: "space-between",
+            transition: "all 0.28s ease",
           }}
         >
           <div>
-            <h3 style={{ color: "#fff", fontSize: "18px", marginBottom: "18px", borderBottom: "1px solid #1E3A5F", paddingBottom: "10px" }}>
-              📝 Live Dashboard HUD
-            </h3>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)", paddingBottom: "12px", marginBottom: "16px" }}>
+              <h3 style={{ color: "var(--text-h)", fontSize: "16px", margin: 0 }}>
+                📊 Live Dashboard HUD
+              </h3>
+              <span style={{ fontSize: "10px", color: "#10B981", background: "rgba(16, 185, 129, 0.15)", padding: "2px 8px", borderRadius: "999px", fontWeight: "700" }}>
+                LIVE SYNC
+              </span>
+            </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "24px" }}>
-              <div style={{ background: "#071829", padding: "16px", borderRadius: "8px", borderLeft: "4px solid #10B981" }}>
-                <div style={{ fontSize: "11px", color: "#94A3B8", letterSpacing: "0.05em" }}>TOTAL DEPOSITS (INCOME)</div>
-                <div style={{ fontSize: "22px", fontWeight: "bold", color: "#10B981", marginTop: "6px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "20px" }}>
+              <div style={{ background: "var(--surface-soft)", padding: "14px", borderRadius: "12px", border: "1px solid var(--border)", borderLeft: "4px solid #10B981" }}>
+                <div style={{ fontSize: "10px", color: "var(--muted)", letterSpacing: "0.05em", textTransform: "uppercase", fontWeight: "700" }}>
+                  TOTAL DEPOSITS (INCOME)
+                </div>
+                <div style={{ fontSize: "20px", fontWeight: "800", color: "#10B981", marginTop: "4px" }}>
                   ₹{totalIncome.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </div>
               </div>
 
-              <div style={{ background: "#071829", padding: "16px", borderRadius: "8px", borderLeft: "4px solid #EF4444" }}>
-                <div style={{ fontSize: "11px", color: "#94A3B8", letterSpacing: "0.05em" }}>TOTAL OUTFLOWS (EXPENSES)</div>
-                <div style={{ fontSize: "22px", fontWeight: "bold", color: "#EF4444", marginTop: "6px" }}>
+              <div style={{ background: "var(--surface-soft)", padding: "14px", borderRadius: "12px", border: "1px solid var(--border)", borderLeft: "4px solid #EF4444" }}>
+                <div style={{ fontSize: "10px", color: "var(--muted)", letterSpacing: "0.05em", textTransform: "uppercase", fontWeight: "700" }}>
+                  TOTAL OUTFLOWS (EXPENSES)
+                </div>
+                <div style={{ fontSize: "20px", fontWeight: "800", color: "#EF4444", marginTop: "4px" }}>
                   ₹{totalExpenses.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </div>
               </div>
 
-              <div style={{ background: "#071829", padding: "16px", borderRadius: "8px", borderLeft: "4px solid #3B82F6" }}>
-                <div style={{ fontSize: "11px", color: "#94A3B8", letterSpacing: "0.05em" }}>NET WALLET SAVINGS</div>
-                <div style={{ fontSize: "22px", fontWeight: "bold", color: "#3B82F6", marginTop: "6px" }}>
+              <div style={{ background: "var(--surface-soft)", padding: "14px", borderRadius: "12px", border: "1px solid var(--border)", borderLeft: "4px solid #38BDF8" }}>
+                <div style={{ fontSize: "10px", color: "var(--muted)", letterSpacing: "0.05em", textTransform: "uppercase", fontWeight: "700" }}>
+                  NET WALLET SURPLUS
+                </div>
+                <div style={{ fontSize: "20px", fontWeight: "800", color: "#38BDF8", marginTop: "4px" }}>
                   ₹{netSavings.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </div>
               </div>
             </div>
 
-            <h4 style={{ color: "#94A3B8", fontSize: "14px", marginBottom: "10px" }}>AI Directives</h4>
-            <ul style={{ color: "#CBD5E1", fontSize: "13px", lineHeight: "1.8", paddingLeft: "20px", margin: 0 }}>
-              <li>Ask for statement analysis</li>
-              <li>Break down your expenses</li>
-              <li>Review your net wallet savings</li>
-              <li>Get advice in English or Hindi</li>
+            <h4 style={{ color: "var(--text-h)", fontSize: "13px", marginBottom: "8px", fontWeight: "700" }}>Supported Voice / Text Commands:</h4>
+            <ul style={{ color: "var(--muted)", fontSize: "12px", lineHeight: "1.7", paddingLeft: "18px", margin: 0 }}>
+              <li><strong>Add Expense:</strong> <em>"Spent ₹350 on petrol"</em></li>
+              <li><strong>Add Income:</strong> <em>"Salary ₹45,000 received"</em></li>
+              <li><strong>Delete:</strong> <em>"Delete last transaction"</em></li>
+              <li><strong>Goals:</strong> <em>"Save ₹50,000 for laptop"</em></li>
+              <li><strong>Budget:</strong> <em>"Set ₹4,000 dining budget"</em></li>
+              <li><strong>Planning:</strong> <em>"Plan my finances"</em></li>
             </ul>
           </div>
 
-          <div style={{ borderTop: "1px solid #1E3A5F", paddingTop: "14px", color: "#64748B", fontSize: "11px", textAlign: "center" }}>
-            amivest AI • {import.meta.env.PROD ? "Production API" : `Listening on Port ${BACKEND_PORT}`}
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: "12px", color: "var(--muted)", fontSize: "11px", textAlign: "center" }}>
+            AmiVest AI • Backend Integrated Engine
           </div>
         </div>
       </div>

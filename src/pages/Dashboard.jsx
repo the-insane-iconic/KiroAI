@@ -1,8 +1,13 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const API_URL =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+  import.meta.env.VITE_API_URL || "http://127.0.0.1:5001";
+
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL?.trim() ||
+  import.meta.env.VITE_API_URL?.trim() ||
+  "http://127.0.0.1:5001";
 
 const CATEGORY_ICONS = {
   food: "🍽️",
@@ -28,6 +33,15 @@ function Dashboard({ transactions, setTransactions }) {
   const [error, setError] = useState("");
   const [activeView, setActiveView] = useState("overview");
   const [animateIn, setAnimateIn] = useState(false);
+
+  // ── Inline import panel state (declared at top level) ──────────
+  const [importOpen, setImportOpen] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importPwd, setImportPwd] = useState("");
+  const [importLoading, setImportLoading] = useState(false);
+  const [importMsg, setImportMsg] = useState("");
+  const [importErr, setImportErr] = useState("");
+  const importFileRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
@@ -112,11 +126,18 @@ function Dashboard({ transactions, setTransactions }) {
       const amount = Number(t.amount || 0);
       const type = String(t.type || "").toLowerCase();
 
+      const isDebit =
+        type === "debit" ||
+        type === "dr" ||
+        type === "expense" ||
+        amount < 0;
+
       const isCredit =
-        amount > 0 ||
-        type === "credit" ||
-        type === "cr" ||
-        type === "income";
+        !isDebit &&
+        (type === "credit" ||
+          type === "cr" ||
+          type === "income" ||
+          amount > 0);
 
       return {
         ...t,
@@ -137,26 +158,8 @@ function Dashboard({ transactions, setTransactions }) {
     return <DashboardSkeleton />;
   }
 
-  if (!currentUser) {
-    return (
-      <div className="av-auth-shell">
-        <style>{globalStyles}</style>
-        <div className="av-auth-card">
-          <div className="av-auth-icon">🔐</div>
-          <div className="av-eyebrow">AMIVEST SECURITY</div>
-          <h2>Sign in to continue</h2>
-          <p>Your private financial dashboard is protected by your account session.</p>
-          <button
-            className="av-primary-button"
-            onClick={() => navigate("/login")}
-          >
-            Go to Login
-            <span>→</span>
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Skip the hard auth wall — show guest view with 0 defaults and a login prompt
+  // (the !currentUser block below handles that inline)
 
   const totalIncome = normalizedTransactions
     .filter((t) => t.isCredit)
@@ -213,14 +216,15 @@ function Dashboard({ transactions, setTransactions }) {
     .reverse()
     .slice(0, 7);
 
-  const userName =
-    currentUser.name ||
-    currentUser.full_name ||
-    currentUser.email?.split("@")[0] ||
-    "there";
-
   const firstName =
-    String(userName).trim().split(/\s+/)[0] || "there";
+    !currentUser
+      ? ""
+      : String(
+          currentUser.name ||
+          currentUser.full_name ||
+          currentUser.email?.split("@")[0] ||
+          "there"
+        ).trim().split(/\s+/)[0] || "there";
 
   const hour = new Date().getHours();
 
@@ -232,14 +236,153 @@ function Dashboard({ transactions, setTransactions }) {
       : "Good evening";
 
   const attentionMessage =
-    netSavings < 0
+    !currentUser
+      ? "Sign in to load your real transactions and see personalised insights."
+      : netSavings < 0
       ? "Your outflows are currently higher than your recorded inflows."
       : savingsRate >= 30
       ? "Your current saving pace looks strong. Keep protecting that surplus."
       : "You are building a positive financial buffer. A little more consistency can strengthen it.";
 
+  // Dynamic alerts & notifications shown directly inside Today's Insight (plain evaluation, not hook)
+  const activeAlerts = (() => {
+    const list = [];
+    if (!currentUser) {
+      list.push({
+        type: "tip",
+        icon: "🏛️",
+        badge: "SCHEME ALERT",
+        badgeColor: "#10B981",
+        title: "PMEGP & Mudra Subsidies",
+        text: "Credit-linked subsidies up to 35% are currently active for rural manufacturing & service enterprises under PMEGP.",
+        actionPath: "/loan",
+      });
+      list.push({
+        type: "info",
+        icon: "📜",
+        badge: "COMPLIANCE",
+        badgeColor: "#06B6D4",
+        title: "DICGC ₹5 Lakh Guarantee",
+        text: "All bank deposits are legally insured up to ₹5,00,000 per depositor under RBI DICGC norms.",
+        actionPath: "/rbi",
+      });
+      return list;
+    }
+
+    if (netSavings < 0) {
+      list.push({
+        type: "warning",
+        icon: "⚠️",
+        badge: "HIGH OUTFLOW",
+        badgeColor: "#EF4444",
+        title: "Outflow Warning",
+        text: `Your recorded spending exceeds income by ₹${Math.abs(netSavings).toLocaleString("en-IN")}. Review high recurring expenses.`,
+        actionPath: "/chat",
+      });
+    } else if (savingsRate >= 30) {
+      list.push({
+        type: "success",
+        icon: "🎉",
+        badge: "SURPLUS MILESTONE",
+        badgeColor: "#10B981",
+        title: "Strong Savings Rate (30%+)",
+        text: "You are maintaining a strong surplus buffer. Consider allocating a portion to low-risk SIPs or goals.",
+        actionPath: "/investments",
+      });
+    }
+
+    const largeTx = normalizedTransactions.find((t) => t.numericAmount >= 100000);
+    if (largeTx) {
+      list.push({
+        type: "info",
+        icon: "💳",
+        badge: "LARGE TRANSFER",
+        badgeColor: "#38BDF8",
+        title: "High-Value Transaction",
+        text: `₹${largeTx.numericAmount.toLocaleString("en-IN")} (${largeTx.description}) recorded on ${largeTx.date}.`,
+        actionPath: "/rbi",
+      });
+    }
+
+    list.push({
+      type: "tip",
+      icon: "🧾",
+      badge: "TAX & SUBSIDY",
+      badgeColor: "#F59E0B",
+      title: "Tax Optimization Alert",
+      text: "Explore Section 80C deductions & MSME interest subvention to minimize tax and borrowing costs.",
+      actionPath: "/tax",
+    });
+
+    return list;
+  })();
+
   const handleQuickAction = (path) => {
     navigate(path);
+  };
+
+  const handleImportFile = (e) => {
+    setImportErr(""); setImportMsg("");
+    const f = e.target.files?.[0];
+    if (!f) { setImportFile(null); return; }
+    const name = f.name.toLowerCase();
+    if (!name.endsWith(".pdf") && !name.endsWith(".csv") && !name.endsWith(".xls") && !name.endsWith(".xlsx")) {
+      setImportErr("Please select a PDF, CSV, XLS or XLSX file."); setImportFile(null); return;
+    }
+    setImportFile(f);
+  };
+
+  const handleImportUpload = async () => {
+    if (!importFile) { setImportErr("Please select a file first."); return; }
+    setImportLoading(true); setImportErr(""); setImportMsg("");
+    try {
+      const fd = new FormData();
+      fd.append("file", importFile);
+      fd.append("statement", importFile);
+      if (importPwd.trim()) { fd.append("password", importPwd); fd.append("pdf_password", importPwd); }
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        try {
+          const u = JSON.parse(stored);
+          const uid = u?.id ?? u?.user_id ?? u?.userId;
+          if (uid) fd.append("user_id", String(uid));
+        } catch (_) {}
+      }
+      const res = await fetch(`${BACKEND_URL}/upload`, { method: "POST", credentials: "include", body: fd });
+      let data = {};
+      try { data = await res.json(); } catch (_) {}
+      if (res.status === 401) throw new Error("Authentication required. Please login to import statements.");
+      if (!res.ok) throw new Error(data.error || data.message || `Upload failed (HTTP ${res.status})`);
+      const count = data.count ?? data.imported ?? data.transactions?.length;
+      setImportMsg(count !== undefined ? `✅ ${count} transactions imported successfully!` : (data.message || "✅ Statement processed!"));
+      setImportFile(null); setImportPwd("");
+      if (importFileRef.current) importFileRef.current.value = "";
+
+      // Immediately refresh transactions so dashboard reflects the uploaded statement!
+      try {
+        const refreshRes = await fetch(`${API_URL}/transactions`, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          if (Array.isArray(refreshData.transactions)) {
+            setTransactions(refreshData.transactions);
+          }
+        } else if (Array.isArray(data.transactions)) {
+          setTransactions(data.transactions);
+        }
+      } catch (_) {
+        if (Array.isArray(data.transactions)) {
+          setTransactions(data.transactions);
+        }
+      }
+    } catch (err) {
+      setImportErr(err.message || "Upload failed.");
+    } finally {
+      setImportLoading(false);
+    }
   };
 
   return (
@@ -251,46 +394,6 @@ function Dashboard({ transactions, setTransactions }) {
       <div className="av-grid"></div>
 
       <div className="av-content">
-        <header className="av-header">
-          <div className="av-brand-block">
-            <div className="av-brand-mark">
-              <span>A</span>
-            </div>
-            <div>
-              <div className="av-brand-name">AmiVest</div>
-              <div className="av-brand-caption">AI financial guardian</div>
-            </div>
-          </div>
-
-          <div className="av-header-actions">
-            <button
-              className="av-icon-button"
-              title="AI Talk"
-              onClick={() => handleQuickAction("/chat")}
-            >
-              ✦
-            </button>
-
-            <button
-              className="av-icon-button"
-              title="Notifications"
-              onClick={() => handleQuickAction("/notifications")}
-            >
-              ♧
-            </button>
-
-            <div className="av-user-chip">
-              <div className="av-user-avatar">
-                {String(firstName).charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <strong>{firstName}</strong>
-                <span>Active account</span>
-              </div>
-            </div>
-          </div>
-        </header>
-
         <section className="av-hero">
           <div className="av-hero-copy">
             <div className="av-eyebrow av-eyebrow-light">
@@ -298,7 +401,7 @@ function Dashboard({ transactions, setTransactions }) {
             </div>
 
             <h1>
-              {greeting}, <span>{firstName}.</span>
+              {greeting}, <span>{currentUser ? `${firstName}.` : "Friend."}</span>
             </h1>
 
             <p>
@@ -312,15 +415,16 @@ function Dashboard({ transactions, setTransactions }) {
                 onClick={() => handleQuickAction("/chat")}
               >
                 Ask AmiVest
-                <span>✦</span>
+                <span>❖</span>
               </button>
 
               <button
                 className="av-ghost-button"
-                onClick={() => handleQuickAction("/import")}
+                onClick={() => setImportOpen((v) => !v)}
+                title="Import bank statement"
               >
-                Import statement
-                <span>↗</span>
+                📥 Import statement
+                <span>{importOpen ? "✕" : "↗"}</span>
               </button>
             </div>
           </div>
@@ -333,15 +437,61 @@ function Dashboard({ transactions, setTransactions }) {
 
               <div>
                 <div className="av-ai-label">AMIVEST AI</div>
-                <strong>Today's insight</strong>
+                <strong>Today's insight & Alerts</strong>
               </div>
 
               <span className="av-ai-live">LIVE</span>
             </div>
 
-            <div className="av-ai-message">
+            <div className="av-ai-message" style={{ marginBottom: "8px" }}>
               {attentionMessage}
             </div>
+
+            {/* Dynamic Financial Alerts & Notifications */}
+            {activeAlerts && activeAlerts.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px", margin: "8px 0 10px 0" }}>
+                {activeAlerts.slice(0, 2).map((alert, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => alert.actionPath && handleQuickAction(alert.actionPath)}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: "8px",
+                      padding: "8px 10px",
+                      borderRadius: "10px",
+                      background: "var(--surface-soft)",
+                      border: "1px solid var(--border)",
+                      cursor: alert.actionPath ? "pointer" : "default",
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => alert.actionPath && (e.currentTarget.style.borderColor = "var(--primary-accent)")}
+                    onMouseLeave={(e) => alert.actionPath && (e.currentTarget.style.borderColor = "var(--border)")}
+                  >
+                    <span style={{ fontSize: "14px", flexShrink: 0, marginTop: "1px" }}>{alert.icon}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "2px" }}>
+                        <span style={{
+                          fontSize: "8.5px",
+                          fontWeight: "800",
+                          padding: "1px 5px",
+                          borderRadius: "9999px",
+                          background: `${alert.badgeColor}22`,
+                          color: alert.badgeColor,
+                          border: `1px solid ${alert.badgeColor}44`,
+                        }}>
+                          {alert.badge}
+                        </span>
+                        <strong style={{ fontSize: "11px", color: "var(--text-h)" }}>{alert.title}</strong>
+                      </div>
+                      <div style={{ fontSize: "10px", color: "var(--muted)", lineHeight: "1.4" }}>
+                        {alert.text}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <button
               className="av-ai-link"
@@ -352,6 +502,142 @@ function Dashboard({ transactions, setTransactions }) {
             </button>
           </div>
         </section>
+
+        {/* ── Guest login nudge ───────────────────────────────── */}
+        {!currentUser && (
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            padding: "10px 16px",
+            marginBottom: "4px",
+            borderRadius: "12px",
+            background: "var(--primary-soft)",
+            border: "1px solid var(--border)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "14px" }}>🔓</span>
+              <span style={{ fontSize: "12px", color: "var(--muted)" }}>
+                Viewing demo data — <strong style={{ color: "var(--primary-accent)" }}>sign in to save your real transactions and track progress.</strong>
+              </span>
+            </div>
+            <button
+              onClick={() => navigate("/login")}
+              style={{
+                flexShrink: 0,
+                padding: "5px 14px",
+                borderRadius: "9999px",
+                border: "1px solid var(--primary-accent)",
+                background: "var(--surface)",
+                color: "var(--primary-accent)",
+                fontSize: "11px",
+                fontWeight: "700",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                transition: "all 0.18s ease",
+              }}
+            >
+              Sign in →
+            </button>
+          </div>
+        )}
+
+        {/* ── Inline import panel ────────────────────────────── */}
+        {importOpen && (
+          <div style={{
+            marginBottom: "16px",
+            borderRadius: "16px",
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
+            boxShadow: "var(--shadow-md)",
+            backdropFilter: "blur(12px)",
+            overflow: "hidden",
+            animation: "av-enter 0.2s ease",
+          }}>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "14px 18px",
+              borderBottom: "1px solid var(--border)",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
+                <span style={{ fontSize: "16px" }}>📥</span>
+                <div>
+                  <div style={{ fontSize: "13px", fontWeight: "700", color: "var(--text-h)" }}>Import Bank Statement</div>
+                  <div style={{ fontSize: "10px", color: "var(--muted)" }}>PDF, CSV, XLS, XLSX • auto-parses transactions</div>
+                </div>
+              </div>
+              <button onClick={() => { setImportOpen(false); setImportErr(""); setImportMsg(""); }} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", fontSize: "16px", lineHeight: 1 }}>×</button>
+            </div>
+
+            <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: "12px" }}>
+              {/* Drop zone */}
+              <label htmlFor="dashboard-import-file" style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "14px 16px",
+                borderRadius: "10px",
+                border: `2px dashed ${importFile ? "var(--primary-accent)" : "var(--border)"}`,
+                background: importFile ? "var(--primary-soft)" : "var(--surface-soft)",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}>
+                <span style={{ fontSize: "22px" }}>{importFile ? "📄" : "📁"}</span>
+                <div style={{ flex: 1 }}>
+                  {importFile ? (
+                    <>
+                      <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--primary-accent)" }}>{importFile.name}</div>
+                      <div style={{ fontSize: "10px", color: "var(--muted)" }}>{(importFile.size / 1024 / 1024).toFixed(2)} MB</div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: "12px", fontWeight: "600", color: "var(--text)" }}>Click to select your bank statement</div>
+                      <div style={{ fontSize: "10px", color: "var(--muted)" }}>PDF • CSV • XLS • XLSX</div>
+                    </>
+                  )}
+                </div>
+                {importFile && <button onClick={(e) => { e.preventDefault(); setImportFile(null); if (importFileRef.current) importFileRef.current.value = ""; }} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: "12px" }}>× clear</button>}
+                <input id="dashboard-import-file" ref={importFileRef} type="file" accept=".pdf,.csv,.xls,.xlsx" onChange={handleImportFile} style={{ display: "none" }} />
+              </label>
+
+              {/* Optional PDF password */}
+              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <input
+                  type="password"
+                  value={importPwd}
+                  onChange={(e) => setImportPwd(e.target.value)}
+                  placeholder="PDF password (optional)"
+                  autoComplete="off"
+                  style={{
+                    flex: 1, padding: "8px 12px", borderRadius: "9px",
+                    border: "1px solid var(--border)",
+                    background: "var(--surface-soft)", color: "var(--text-h)",
+                    fontSize: "12px", outline: "none",
+                  }}
+                />
+                <button
+                  onClick={handleImportUpload}
+                  disabled={importLoading || !importFile}
+                  style={{
+                    padding: "8px 18px", borderRadius: "9px", border: "none",
+                    background: importLoading || !importFile ? "var(--surface-soft)" : "linear-gradient(90deg, var(--primary), var(--blue))",
+                    color: "#fff", fontSize: "12px", fontWeight: "700",
+                    cursor: importLoading || !importFile ? "not-allowed" : "pointer",
+                    whiteSpace: "nowrap", transition: "all 0.15s ease",
+                  }}
+                >
+                  {importLoading ? "⏳ Processing..." : "🚀 Process"}
+                </button>
+              </div>
+
+              {importErr && <div style={{ padding: "8px 12px", borderRadius: "8px", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#FCA5A5", fontSize: "12px" }}>⚠️ {importErr}</div>}
+              {importMsg && <div style={{ padding: "8px 12px", borderRadius: "8px", background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", color: "#6EE7B7", fontSize: "12px" }}>{importMsg}</div>}
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="av-error">
@@ -965,10 +1251,8 @@ const globalStyles = `
   min-height: 100vh;
   overflow-x: hidden;
   padding: 24px 0 60px;
-  background:
-    radial-gradient(circle at 86% 2%, rgba(22, 176, 132, .10), transparent 24%),
-    linear-gradient(180deg, #f8fcfa 0%, #f1f7f5 100%);
-  color: #10272e;
+  background: transparent;
+  color: var(--text);
 }
 
 .av-orb {
@@ -984,7 +1268,7 @@ const globalStyles = `
   height: 430px;
   top: -230px;
   right: -180px;
-  background: radial-gradient(circle, rgba(15, 168, 121, .15), transparent 69%);
+  background: radial-gradient(circle, var(--glow), transparent 69%);
   animation: avSoftFloat 11s ease-in-out infinite;
 }
 
@@ -993,7 +1277,7 @@ const globalStyles = `
   height: 370px;
   bottom: -190px;
   left: -150px;
-  background: radial-gradient(circle, rgba(25, 138, 168, .09), transparent 70%);
+  background: radial-gradient(circle, var(--glow), transparent 70%);
   animation: avSoftFloat2 13s ease-in-out infinite;
 }
 
@@ -1002,10 +1286,10 @@ const globalStyles = `
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: .18;
+  opacity: .14;
   background-image:
-    linear-gradient(rgba(27, 93, 80, .055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(27, 93, 80, .055) 1px, transparent 1px);
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: linear-gradient(to bottom, #000 0%, rgba(0,0,0,.55) 45%, transparent 100%);
 }
@@ -1037,21 +1321,22 @@ const globalStyles = `
   display: grid;
   place-items: center;
   border-radius: 13px;
-  background: linear-gradient(135deg, #0b916c, #19bc8d);
+  background: linear-gradient(135deg, var(--primary), #10b981);
   color: #fff;
   font-weight: 950;
   font-size: 20px;
-  box-shadow: 0 14px 30px rgba(13, 140, 103, .20);
+  box-shadow: 0 14px 30px var(--glow);
 }
 
 .av-brand-name {
   font-size: 17px;
   font-weight: 950;
   letter-spacing: -.03em;
+  color: var(--text-h);
 }
 
 .av-brand-caption {
-  color: #83989e;
+  color: var(--muted);
   font-size: 9px;
   font-weight: 850;
   text-transform: uppercase;
@@ -1070,19 +1355,20 @@ const globalStyles = `
   height: 39px;
   display: grid;
   place-items: center;
-  border: 1px solid #dce9e5;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: rgba(255,255,255,.78);
-  color: #1a6756;
+  background: var(--surface);
+  color: var(--primary-accent);
   font-size: 15px;
   cursor: pointer;
+  box-shadow: var(--shadow-sm);
   transition: .22s ease;
 }
 
 .av-icon-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 25px rgba(23,75,66,.08);
-  border-color: #b8d9ce;
+  box-shadow: 0 12px 25px var(--glow);
+  border-color: var(--primary-accent);
 }
 
 .av-user-chip {
@@ -1090,9 +1376,10 @@ const globalStyles = `
   align-items: center;
   gap: 9px;
   padding: 5px 8px 5px 5px;
-  border: 1px solid #dce9e5;
+  border: 1px solid var(--border);
   border-radius: 14px;
-  background: rgba(255,255,255,.82);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .av-user-avatar {
@@ -1101,8 +1388,8 @@ const globalStyles = `
   display: grid;
   place-items: center;
   border-radius: 10px;
-  background: #e6f7f1;
-  color: #0c956c;
+  background: var(--primary-soft);
+  color: var(--primary-accent);
   font-weight: 900;
 }
 
@@ -1113,10 +1400,11 @@ const globalStyles = `
 
 .av-user-chip strong {
   font-size: 10px;
+  color: var(--text-h);
 }
 
 .av-user-chip span {
-  color: #84979c;
+  color: var(--muted);
   font-size: 8px;
   margin-top: 2px;
 }
@@ -1127,23 +1415,22 @@ const globalStyles = `
   gap: 16px;
   padding: 34px;
   border-radius: 28px;
-  background:
-    radial-gradient(circle at 100% 0%, rgba(39,214,161,.17), transparent 26%),
-    linear-gradient(135deg, #0d3033 0%, #113e3f 50%, #0d5750 100%);
-  color: #fff;
-  box-shadow: 0 28px 75px rgba(15, 65, 59, .18);
+  background: var(--hero-bg);
+  color: var(--text-h);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
   animation: avFadeUp .65s ease both;
 }
 
 .av-eyebrow {
-  color: #5c8b80;
+  color: var(--primary-accent);
   font-size: 9px;
   font-weight: 950;
   letter-spacing: 1.7px;
 }
 
 .av-eyebrow-light {
-  color: #76cbb1;
+  color: var(--primary-accent);
 }
 
 .av-hero h1 {
@@ -1151,10 +1438,11 @@ const globalStyles = `
   font-size: clamp(38px, 5.2vw, 66px);
   line-height: .98;
   letter-spacing: -.065em;
+  color: var(--text-h);
 }
 
 .av-hero h1 span {
-  background: linear-gradient(90deg, #7be4c0, #d2fff0);
+  background: linear-gradient(90deg, var(--primary), var(--blue));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -1163,7 +1451,7 @@ const globalStyles = `
 .av-hero p {
   max-width: 670px;
   margin: 0;
-  color: #b6d1ca;
+  color: var(--muted);
   font-size: 13px;
   line-height: 1.72;
 }
@@ -1189,16 +1477,16 @@ const globalStyles = `
 }
 
 .av-hero-button {
-  border: 1px solid rgba(255,255,255,.10);
-  background: #18b487;
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(135deg, var(--primary), #10B981);
   color: #fff;
-  box-shadow: 0 12px 25px rgba(10, 153, 112, .20);
+  box-shadow: 0 12px 25px var(--glow);
 }
 
 .av-ghost-button {
-  border: 1px solid rgba(255,255,255,.15);
-  background: rgba(255,255,255,.055);
-  color: #d7efea;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  color: var(--primary-accent);
 }
 
 .av-hero-button:hover,
@@ -1210,8 +1498,9 @@ const globalStyles = `
   align-self: stretch;
   padding: 18px;
   border-radius: 20px;
-  background: rgba(255,255,255,.075);
-  border: 1px solid rgba(255,255,255,.10);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
   backdrop-filter: blur(15px);
   display: flex;
   flex-direction: column;
@@ -1230,13 +1519,13 @@ const globalStyles = `
   display: grid;
   place-items: center;
   border-radius: 12px;
-  background: rgba(33,211,163,.15);
-  color: #85ead0;
+  background: var(--primary-soft);
+  color: var(--primary-accent);
   animation: avPulse 2.5s ease-in-out infinite;
 }
 
 .av-ai-label {
-  color: #72c9b2;
+  color: var(--primary-accent);
   font-size: 8px;
   font-weight: 950;
   letter-spacing: 1.5px;
@@ -1246,15 +1535,16 @@ const globalStyles = `
   display: block;
   margin-top: 2px;
   font-size: 12px;
+  color: var(--text-h);
 }
 
 .av-ai-live {
   margin-left: auto;
   padding: 5px 7px;
   border-radius: 999px;
-  background: rgba(90,226,184,.09);
-  border: 1px solid rgba(90,226,184,.17);
-  color: #91e8cf;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34D399;
   font-size: 7px;
   font-weight: 950;
   letter-spacing: 1px;
@@ -1262,7 +1552,7 @@ const globalStyles = `
 
 .av-ai-message {
   margin: 17px 0;
-  color: #e1f2ee;
+  color: var(--text);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -1273,7 +1563,7 @@ const globalStyles = `
   align-items: center;
   border: 0;
   background: transparent;
-  color: #8ce4ca;
+  color: var(--primary-accent);
   padding: 0;
   font-size: 9px;
   font-weight: 900;
@@ -1287,9 +1577,9 @@ const globalStyles = `
   margin-top: 14px;
   padding: 12px 14px;
   border-radius: 15px;
-  background: #fff4f2;
-  border: 1px solid #f1d4cf;
-  color: #89534d;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #FCA5A5;
   animation: avFadeUp .4s ease both;
 }
 
@@ -1299,7 +1589,7 @@ const globalStyles = `
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: #f8ddd8;
+  background: rgba(239, 68, 68, 0.2);
   font-weight: 950;
 }
 
@@ -1310,31 +1600,41 @@ const globalStyles = `
 
 .av-error strong {
   font-size: 10px;
+  color: #FCA5A5;
 }
 
 .av-error p {
   margin: 3px 0 0;
-  color: #a1726b;
+  color: #F87171;
   font-size: 9px;
 }
 
 .av-metrics {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-top: 15px;
+  gap: 16px;
+  margin-top: 18px;
 }
 
 .av-metric-card {
   position: relative;
   overflow: hidden;
-  padding: 17px;
-  border-radius: 19px;
-  background: rgba(255,255,255,.88);
-  border: 1px solid #e0ece8;
-  box-shadow: 0 14px 38px rgba(31,79,70,.05);
+  padding: 20px 18px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
+  color: var(--text-h);
   opacity: 0;
   animation: avFadeUp .65s ease forwards;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.av-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-accent);
 }
 
 .av-metric-card::before {
@@ -1345,7 +1645,7 @@ const globalStyles = `
   border-radius: 50%;
   right: -60px;
   top: -60px;
-  background: rgba(18,171,125,.065);
+  background: var(--glow);
 }
 
 .av-metric-top {
@@ -1358,7 +1658,7 @@ const globalStyles = `
 }
 
 .av-metric-eyebrow {
-  color: #82969b;
+  color: var(--muted);
   font-size: 7px;
   letter-spacing: 1.2px;
   font-weight: 950;
@@ -1368,6 +1668,7 @@ const globalStyles = `
   margin-top: 4px;
   font-size: 11px;
   font-weight: 850;
+  color: var(--text);
 }
 
 .av-metric-icon {
@@ -1376,19 +1677,19 @@ const globalStyles = `
   display: grid;
   place-items: center;
   border-radius: 9px;
-  background: #eff8f5;
-  color: #0c9a70;
+  background: var(--primary-soft);
+  color: var(--primary-accent);
   font-size: 13px;
 }
 
 .av-metric-card.expense .av-metric-icon {
-  background: #fff3f1;
-  color: #cd6255;
+  background: rgba(239, 68, 68, 0.15);
+  color: #F87171;
 }
 
 .av-metric-card.risk .av-metric-icon {
-  background: #fff7e8;
-  color: #b7771c;
+  background: rgba(245, 158, 11, 0.15);
+  color: #FBBF24;
 }
 
 .av-metric-value {
@@ -1402,24 +1703,24 @@ const globalStyles = `
 
 .av-metric-card.income .av-metric-value,
 .av-metric-card.savings .av-metric-value {
-  color: #0d9b70;
+  color: #34D399;
 }
 
 .av-metric-card.expense .av-metric-value {
-  color: #d65f52;
+  color: #F87171;
 }
 
 .av-metric-card.risk .av-metric-value {
-  color: #b97b27;
+  color: #FBBF24;
 }
 
 .av-metric-card.monthly .av-metric-value {
-  color: #167a91;
+  color: #38BDF8;
 }
 
 .av-metric-meta {
   margin-top: 6px;
-  color: #809397;
+  color: var(--muted);
   font-size: 8px;
   line-height: 1.4;
 }
@@ -1427,8 +1728,8 @@ const globalStyles = `
 .av-main-grid,
 .av-lower-grid {
   display: grid;
-  gap: 15px;
-  margin-top: 15px;
+  gap: 18px;
+  margin-top: 18px;
 }
 
 .av-main-grid {
@@ -1441,12 +1742,19 @@ const globalStyles = `
 
 .av-panel {
   min-width: 0;
-  padding: 20px;
-  border-radius: 22px;
-  background: rgba(255,255,255,.84);
-  border: 1px solid #e0ece8;
-  box-shadow: 0 15px 45px rgba(31,79,70,.055);
+  padding: 24px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(14px);
+  color: var(--text-h);
   animation: avFadeUp .7s .18s ease both;
+  transition: border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.av-panel:hover {
+  border-color: var(--border-strong);
 }
 
 .av-panel-heading h2,
@@ -1454,13 +1762,14 @@ const globalStyles = `
   margin: 5px 0 5px;
   font-size: 23px;
   letter-spacing: -.045em;
+  color: var(--text-h);
 }
 
 .av-panel-heading p,
 .av-journey-panel > p {
   max-width: 640px;
   margin: 0;
-  color: #7b9095;
+  color: var(--muted);
   font-size: 9px;
   line-height: 1.6;
 }
@@ -1493,20 +1802,20 @@ const globalStyles = `
   place-items: center;
   align-content: center;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: inset 0 0 0 1px #ebf2ef;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 
 .av-health-ring-inner strong {
   font-size: 35px;
   line-height: 1;
   font-weight: 950;
-  color: #0c936a;
+  color: #34D399;
 }
 
 .av-health-ring-inner span {
   margin-top: 2px;
-  color: #92a5a8;
+  color: var(--muted);
   font-size: 8px;
 }
 
@@ -1514,8 +1823,9 @@ const globalStyles = `
   display: inline-flex;
   padding: 6px 9px;
   border-radius: 999px;
-  background: #eaf8f2;
-  color: #0f926a;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
   font-size: 8px;
   font-weight: 950;
   letter-spacing: .5px;
@@ -1523,7 +1833,7 @@ const globalStyles = `
 
 .av-health-copy > p {
   margin: 12px 0 16px;
-  color: #687f84;
+  color: var(--text);
   font-size: 10px;
   line-height: 1.65;
 }
@@ -1537,27 +1847,27 @@ const globalStyles = `
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  color: #7d9095;
+  color: var(--muted);
   font-size: 8px;
   font-weight: 800;
   margin-bottom: 5px;
 }
 
 .av-health-row-top strong {
-  color: #3d6560;
+  color: #34D399;
 }
 
 .av-health-track {
   height: 7px;
   overflow: hidden;
   border-radius: 999px;
-  background: #eaf2ef;
+  background: var(--surface-soft);
 }
 
 .av-health-fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #0e9e72, #29c39d);
+  background: linear-gradient(90deg, var(--primary), var(--primary-accent));
   animation: avBarGrow .85s ease both;
 }
 
@@ -1575,17 +1885,19 @@ const globalStyles = `
   width: 100%;
   padding: 10px;
   text-align: left;
-  border: 1px solid #e7efec;
+  border: 1px solid var(--border);
   border-radius: 13px;
-  background: #fbfefd;
+  background: var(--surface-soft);
+  color: var(--text-h);
   cursor: pointer;
   transition: .22s ease;
 }
 
 .av-action-card:hover {
   transform: translateX(4px);
-  border-color: #cfe4dc;
-  box-shadow: 0 10px 24px rgba(31,79,70,.06);
+  border-color: var(--primary-accent);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .av-action-icon {
@@ -1594,8 +1906,8 @@ const globalStyles = `
   display: grid;
   place-items: center;
   border-radius: 10px;
-  background: #eaf8f2;
-  color: #0e976e;
+  background: var(--primary-soft);
+  color: var(--primary-accent);
   font-size: 14px;
 }
 
@@ -1605,19 +1917,19 @@ const globalStyles = `
 }
 
 .av-action-copy strong {
-  color: #1e3a40;
+  color: var(--text-h);
   font-size: 10px;
 }
 
 .av-action-copy span {
   margin-top: 2px;
-  color: #84979b;
+  color: var(--muted);
   font-size: 8px;
   line-height: 1.4;
 }
 
 .av-action-arrow {
-  color: #6aa598;
+  color: var(--primary-accent);
   font-size: 14px;
 }
 
@@ -1631,7 +1943,7 @@ const globalStyles = `
 .av-small-link {
   border: 0;
   background: transparent;
-  color: #108f68;
+  color: var(--primary-accent);
   font-size: 8px;
   font-weight: 900;
   cursor: pointer;
@@ -1657,7 +1969,8 @@ const globalStyles = `
   display: grid;
   place-items: center;
   border-radius: 10px;
-  background: #f0f8f5;
+  background: var(--primary-soft);
+  color: var(--primary-accent);
   font-size: 15px;
 }
 
@@ -1670,10 +1983,11 @@ const globalStyles = `
 
 .av-category-top strong {
   font-size: 10px;
+  color: var(--text-h);
 }
 
 .av-category-top span {
-  color: #608078;
+  color: var(--primary-accent);
   font-size: 9px;
   font-weight: 900;
 }
@@ -1682,13 +1996,13 @@ const globalStyles = `
   height: 8px;
   overflow: hidden;
   border-radius: 999px;
-  background: #eaf1ef;
+  background: var(--surface-soft);
 }
 
 .av-bar-fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #13a579, #39c49f);
+  background: linear-gradient(90deg, var(--primary), var(--primary-accent));
   animation: avBarGrow .75s ease both;
 }
 
@@ -1696,41 +2010,40 @@ const globalStyles = `
   margin-top: 17px;
   padding: 11px 12px;
   border-radius: 12px;
-  background: #f2faf7;
-  border: 1px solid #dceee7;
+  background: var(--primary-soft);
+  border: 1px solid var(--border);
 }
 
 .av-breakdown-note strong {
-  color: #366258;
+  color: var(--primary-accent);
   font-size: 8px;
   font-weight: 950;
 }
 
 .av-breakdown-note p {
   margin: 4px 0 0;
-  color: #7e9590;
+  color: var(--text);
   font-size: 8px;
   line-height: 1.6;
 }
 
 .av-journey-panel {
-  background:
-    radial-gradient(circle at 90% 0%, rgba(44,209,165,.16), transparent 28%),
-    linear-gradient(145deg, #0e3034, #0c4b45);
-  color: #fff;
-  border-color: rgba(255,255,255,.06);
+  background: var(--surface);
+  color: var(--text-h);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
 .av-journey-panel .av-eyebrow {
-  color: #75cbb0;
+  color: var(--primary-accent);
 }
 
 .av-journey-panel h2 {
-  color: #fff;
+  color: var(--text-h);
 }
 
 .av-journey-panel > p {
-  color: #a9c7c0;
+  color: var(--muted);
 }
 
 .av-journey-grid {
@@ -1744,17 +2057,18 @@ const globalStyles = `
   min-height: 95px;
   padding: 11px;
   text-align: left;
-  border: 1px solid rgba(255,255,255,.07);
+  border: 1px solid var(--border);
   border-radius: 13px;
-  background: rgba(255,255,255,.055);
-  color: #fff;
+  background: var(--surface-soft);
+  color: var(--text-h);
   cursor: pointer;
   transition: .22s ease;
 }
 
 .av-journey-card:hover {
   transform: translateY(-3px);
-  background: rgba(255,255,255,.09);
+  background: var(--surface);
+  border-color: var(--primary-accent);
 }
 
 .av-journey-icon {
@@ -1763,7 +2077,8 @@ const globalStyles = `
   display: grid;
   place-items: center;
   border-radius: 9px;
-  background: rgba(255,255,255,.08);
+  background: var(--primary-soft);
+  color: var(--primary-accent);
   font-size: 13px;
   margin-bottom: 9px;
 }
@@ -1775,11 +2090,12 @@ const globalStyles = `
 
 .av-journey-card strong {
   font-size: 9px;
+  color: var(--text-h);
 }
 
 .av-journey-card span {
   margin-top: 3px;
-  color: #9fbbb5;
+  color: var(--muted);
   font-size: 7px;
 }
 
@@ -1802,8 +2118,8 @@ const globalStyles = `
 
 .av-table-head {
   padding: 0 5px 9px;
-  border-bottom: 1px solid #e4eeeb;
-  color: #8ca0a4;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
   font-size: 7px;
   letter-spacing: 1px;
   font-weight: 950;
@@ -1815,7 +2131,13 @@ const globalStyles = `
 
 .av-table-row {
   padding: 12px 5px;
-  border-bottom: 1px solid #edf2f0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  transition: background-color 0.15s ease;
+}
+
+.av-table-row:hover {
+  background: var(--primary-soft);
 }
 
 .av-transaction-cell {
@@ -1837,13 +2159,13 @@ const globalStyles = `
 }
 
 .av-transaction-icon.credit {
-  background: #eaf8f2;
-  color: #0b976c;
+  background: rgba(16, 185, 129, 0.18);
+  color: #34D399;
 }
 
 .av-transaction-icon.debit {
-  background: #fff1ee;
-  color: #d06152;
+  background: rgba(239, 68, 68, 0.18);
+  color: #F87171;
 }
 
 .av-transaction-cell strong,
@@ -1856,11 +2178,12 @@ const globalStyles = `
 
 .av-transaction-cell strong {
   font-size: 9px;
+  color: var(--text-h);
 }
 
 .av-transaction-cell span {
   margin-top: 2px;
-  color: #8a9ca1;
+  color: var(--muted);
   font-size: 7px;
 }
 
@@ -1868,14 +2191,15 @@ const globalStyles = `
   display: inline-flex;
   padding: 5px 7px;
   border-radius: 999px;
-  background: #f1f6f4;
-  color: #647c81;
+  background: var(--surface-soft);
+  color: var(--text);
+  border: 1px solid var(--border);
   font-size: 7px;
   font-weight: 850;
 }
 
 .av-date {
-  color: #819499;
+  color: var(--muted);
   font-size: 8px;
 }
 
@@ -1886,11 +2210,11 @@ const globalStyles = `
 }
 
 .av-amount.credit {
-  color: #0b986d;
+  color: #34D399;
 }
 
 .av-amount.debit {
-  color: #d15d4f;
+  color: #F87171;
 }
 
 .av-empty {
@@ -1905,8 +2229,8 @@ const globalStyles = `
   display: grid;
   place-items: center;
   border-radius: 16px;
-  background: #eff8f5;
-  color: #0c956c;
+  background: var(--primary-soft);
+  color: var(--primary-accent);
   font-size: 22px;
   animation: avPulse 2.5s ease-in-out infinite;
 }
@@ -1914,12 +2238,13 @@ const globalStyles = `
 .av-empty h3 {
   margin: 0;
   font-size: 15px;
+  color: var(--text-h);
 }
 
 .av-empty p {
   max-width: 500px;
   margin: 6px auto 0;
-  color: #7f9397;
+  color: var(--muted);
   font-size: 9px;
   line-height: 1.6;
 }
@@ -1929,7 +2254,7 @@ const globalStyles = `
   border: 0;
   border-radius: 11px;
   padding: 10px 13px;
-  background: #0f9770;
+  background: linear-gradient(135deg, var(--primary), #10b981);
   color: #fff;
   font-size: 9px;
   font-weight: 900;
@@ -1941,7 +2266,7 @@ const globalStyles = `
   justify-content: space-between;
   gap: 15px;
   padding: 19px 2px 0;
-  color: #879a9e;
+  color: var(--muted);
   font-size: 7px;
   line-height: 1.5;
 }
@@ -1957,10 +2282,11 @@ const globalStyles = `
   width: min(500px, 100%);
   padding: 35px;
   border-radius: 24px;
-  background: rgba(255,255,255,.92);
-  border: 1px solid #e0ece8;
-  box-shadow: 0 25px 60px rgba(22,73,64,.10);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
   text-align: center;
+  color: var(--text);
 }
 
 .av-auth-icon {
@@ -1970,18 +2296,20 @@ const globalStyles = `
   display: grid;
   place-items: center;
   border-radius: 19px;
-  background: #edf8f4;
+  background: var(--primary-soft);
+  color: var(--primary-accent);
   font-size: 25px;
 }
 
 .av-auth-card h2 {
   margin: 7px 0;
   font-size: 26px;
+  color: var(--text-h);
 }
 
 .av-auth-card p {
   margin: 0;
-  color: #83969a;
+  color: var(--muted);
   font-size: 11px;
   line-height: 1.6;
 }
@@ -1994,7 +2322,7 @@ const globalStyles = `
   border: 0;
   border-radius: 12px;
   padding: 12px 16px;
-  background: #109a72;
+  background: linear-gradient(135deg, var(--primary), #10b981);
   color: #fff;
   font-weight: 900;
   cursor: pointer;
@@ -2010,9 +2338,9 @@ const globalStyles = `
   background:
     linear-gradient(
       90deg,
-      #edf3f1 0px,
-      #f7fbfa 180px,
-      #edf3f1 360px
+      var(--surface) 0px,
+      var(--surface-soft) 180px,
+      var(--surface) 360px
     );
   background-size: 600px 100%;
   animation: avSkeleton 1.5s linear infinite;

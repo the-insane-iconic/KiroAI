@@ -23,7 +23,7 @@ import React, { useEffect, useMemo, useState } from "react";
  */
 
 const API_BASE =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+  import.meta.env.VITE_API_URL || "http://127.0.0.1:5001";
 
 const DEFAULT_CATEGORIES = [
   "Food",
@@ -756,7 +756,7 @@ export default function Goals({ transactions = [] }) {
       style={{
         minHeight: "100vh",
         padding: "40px",
-        color: "#fff",
+        color: "var(--text)",
         boxSizing: "border-box",
       }}
     >
@@ -779,6 +779,7 @@ export default function Goals({ transactions = [] }) {
             style={{
               fontSize: "38px",
               margin: 0,
+              color: "var(--text-h)",
             }}
           >
             Goals
@@ -786,7 +787,7 @@ export default function Goals({ transactions = [] }) {
 
           <p
             style={{
-              color: "#9aa9bd",
+              color: "var(--muted)",
               fontSize: "17px",
             }}
           >
@@ -1664,21 +1665,23 @@ const buttonStyle = {
   borderRadius: "12px",
   padding: "13px 20px",
   background:
-    "linear-gradient(135deg,#10b5a8,#10b8d0)",
+    "linear-gradient(135deg, var(--primary), var(--primary-accent))",
   color: "#fff",
   fontWeight: 800,
   cursor: "pointer",
   fontSize: "15px",
+  transition: "all 0.28s ease",
 };
 
 const secondaryButton = {
-  border: "1px solid #2b4057",
+  border: "1px solid var(--border)",
   borderRadius: "10px",
   padding: "10px 16px",
-  background: "#0b1726",
-  color: "#cbd5e1",
+  background: "var(--surface-soft)",
+  color: "var(--text-h)",
   fontWeight: 700,
   cursor: "pointer",
+  transition: "all 0.28s ease",
 };
 
 const smallActionButton = {
@@ -1686,25 +1689,28 @@ const smallActionButton = {
   border: "none",
   borderRadius: "9px",
   padding: "8px 12px",
-  background: "#0e9f92",
+  background: "var(--primary)",
   color: "#fff",
   fontWeight: 800,
   cursor: "pointer",
+  transition: "all 0.28s ease",
 };
 
 const cardStyle = {
-  background: "#151a21",
-  border: "1px solid #252d38",
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
   borderRadius: "18px",
   padding: "25px",
+  transition: "all 0.28s ease",
 };
 
 const largeCard = {
-  background: "#171c23",
-  border: "1px solid #252d38",
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
   borderRadius: "20px",
   padding: "28px",
   marginBottom: "25px",
+  transition: "all 0.28s ease",
 };
 
 const gridStyle = {
@@ -1729,38 +1735,39 @@ const inputStyle = {
   marginTop: "8px",
   padding: "15px",
   borderRadius: "12px",
-  border: "1px solid #26384e",
-  background: "#091625",
-  color: "#fff",
+  border: "1px solid var(--border)",
+  background: "var(--surface-soft)",
+  color: "var(--text-h)",
   fontSize: "15px",
   outline: "none",
+  transition: "all 0.28s ease",
 };
 
 const labelStyle = {
-  color: "#9ba8b9",
+  color: "var(--muted)",
   fontSize: "13px",
   fontWeight: 700,
   letterSpacing: "0.5px",
 };
 
 const mutedStyle = {
-  color: "#8998aa",
+  color: "var(--muted)",
   lineHeight: 1.6,
 };
 
 const errorStyle = {
-  background: "#321d24",
-  border: "1px solid #713743",
-  color: "#ff9da8",
+  background: "rgba(239,68,68,0.1)",
+  border: "1px solid #ef4444",
+  color: "#ef4444",
   padding: "15px",
   borderRadius: "12px",
   marginBottom: "20px",
 };
 
 const successStyle = {
-  background: "#102e2b",
-  border: "1px solid #1b7068",
-  color: "#5ce0d1",
+  background: "rgba(16,185,129,0.1)",
+  border: "1px solid var(--primary)",
+  color: "var(--primary)",
   padding: "15px",
   borderRadius: "12px",
   marginBottom: "20px",
@@ -1768,9 +1775,9 @@ const successStyle = {
 
 const dangerAlertStyle = {
   background:
-    "linear-gradient(135deg,#3b1820,#25151b)",
-  border: "1px solid #ff4d5d",
-  color: "#ffb5bd",
+    "rgba(239,68,68,0.08)",
+  border: "1px solid #ef4444",
+  color: "#ef4444",
   padding: "20px",
   borderRadius: "15px",
   marginBottom: "20px",
@@ -1780,9 +1787,9 @@ const dangerAlertStyle = {
 
 const warningAlertStyle = {
   background:
-    "linear-gradient(135deg,#3b2b12,#241d12)",
-  border: "1px solid #ffb020",
-  color: "#ffd98a",
+    "rgba(245,158,11,0.08)",
+  border: "1px solid #f59e0b",
+  color: "#d97706",
   padding: "20px",
   borderRadius: "15px",
   marginBottom: "20px",
@@ -1793,9 +1800,9 @@ const infoAlertStyle = {
   alignItems: "center",
   flexWrap: "wrap",
   gap: "10px",
-  background: "#10273a",
-  border: "1px solid #24577a",
-  color: "#9ed8ff",
+  background: "var(--surface-soft)",
+  border: "1px solid var(--border)",
+  color: "var(--text-h)",
   padding: "16px",
   borderRadius: "12px",
   marginBottom: "20px",
@@ -1804,13 +1811,13 @@ const infoAlertStyle = {
 const emptyStyle = {
   textAlign: "center",
   padding: "45px 20px",
-  color: "#8b99aa",
+  color: "var(--muted)",
 };
 
 const deleteButton = {
   border: "none",
-  background: "#34212a",
-  color: "#ff6b7a",
+  background: "rgba(239,68,68,0.15)",
+  color: "#ef4444",
   width: "32px",
   height: "32px",
   borderRadius: "8px",

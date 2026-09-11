@@ -172,14 +172,14 @@ function calculateEMI(principal, annualRate, months) {
 ========================================================= */
 
 const COLORS = {
-  bg: "#071019",
-  card: "#101821",
-  card2: "#0B1420",
-  border: "#263241",
-  text: "#FFFFFF",
-  muted: "#94A3B8",
-  soft: "#CBD5E1",
-  teal: "#0D9488",
+  bg: "var(--bg)",
+  card: "var(--surface)",
+  card2: "var(--surface-soft)",
+  border: "var(--border)",
+  text: "var(--text-h)",
+  muted: "var(--muted)",
+  soft: "var(--text)",
+  teal: "var(--primary)",
   green: "#10B981",
   yellow: "#F59E0B",
   red: "#EF4444",
@@ -191,6 +191,7 @@ const cardStyle = {
   border: `1px solid ${COLORS.border}`,
   borderRadius: "16px",
   padding: "20px",
+  boxShadow: "var(--shadow-sm)",
 };
 
 const inputStyle = {
@@ -3783,309 +3784,6 @@ function EMICalculator() {
 }
 
 /* =========================================================
-   AI CHAT
-========================================================= */
-
-function FloatingLoanChat() {
-  const [open, setOpen] = useState(false);
-
-  const [messages, setMessages] = useState([
-    {
-      who: "ai",
-      text:
-        "👋 Hi! Ask me about loan eligibility, EMI, documents, repayment, or lender comparison.",
-    },
-  ]);
-
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const suggestions = [
-    "What documents do I need?",
-    "How can I reduce my EMI?",
-    "Explain my loan eligibility",
-  ];
-
-  const sendMessage = async (preset = null) => {
-    const question = String(
-      preset ?? input
-    ).trim();
-
-    if (!question || loading) return;
-
-    setMessages((previous) => [
-      ...previous,
-      {
-        who: "user",
-        text: question,
-      },
-    ]);
-
-    setInput("");
-    setLoading(true);
-
-    try {
-      const data = await apiCall("/chat", {
-        method: "POST",
-        body: JSON.stringify({
-          message: question,
-        }),
-      });
-
-      const reply =
-        data?.reply ||
-        data?.response ||
-        data?.message ||
-        "I couldn't generate a response.";
-
-      setMessages((previous) => [
-        ...previous,
-        {
-          who: "ai",
-          text: reply,
-        },
-      ]);
-    } catch (err) {
-      setMessages((previous) => [
-        ...previous,
-        {
-          who: "ai",
-          text:
-            "❌ I couldn't reach the AI right now. Please try again.",
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <>
-      {open && (
-        <div
-          style={{
-            position: "fixed",
-            right: "22px",
-            bottom: "88px",
-            width: "360px",
-            maxWidth: "calc(100vw - 30px)",
-            height: "470px",
-            background: COLORS.card,
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: "17px",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            zIndex: 2000,
-            boxShadow:
-              "0 18px 50px rgba(0,0,0,0.55)",
-          }}
-        >
-          <div
-            style={{
-              padding: "15px",
-              background: COLORS.card2,
-              borderBottom: `1px solid ${COLORS.border}`,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  color: COLORS.text,
-                  fontWeight: "800",
-                  fontSize: "14px",
-                }}
-              >
-                🤖 Loan Assistant
-              </div>
-
-              <div
-                style={{
-                  color: COLORS.muted,
-                  fontSize: "10px",
-                  marginTop: "3px",
-                }}
-              >
-                FinSaathi AI
-              </div>
-            </div>
-
-            <button
-              onClick={() => setOpen(false)}
-              style={{
-                background: "none",
-                border: "none",
-                color: COLORS.muted,
-                fontSize: "18px",
-                cursor: "pointer",
-              }}
-            >
-              ✕
-            </button>
-          </div>
-
-          <div
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: "13px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "9px",
-            }}
-          >
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    message.who === "user"
-                      ? "flex-end"
-                      : "flex-start",
-                }}
-              >
-                <div
-                  style={{
-                    maxWidth: "86%",
-                    padding: "10px 12px",
-                    borderRadius: "12px",
-                    background:
-                      message.who === "user"
-                        ? COLORS.teal
-                        : COLORS.card2,
-                    border:
-                      message.who === "user"
-                        ? "none"
-                        : `1px solid ${COLORS.border}`,
-                    color: COLORS.text,
-                    fontSize: "12px",
-                    lineHeight: "1.5",
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
-                  {message.text}
-                </div>
-              </div>
-            ))}
-
-            {messages.length === 1 && (
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "6px",
-                  marginTop: "4px",
-                }}
-              >
-                {suggestions.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    onClick={() =>
-                      sendMessage(suggestion)
-                    }
-                    style={{
-                      background: "transparent",
-                      border: `1px solid ${COLORS.border}`,
-                      color: COLORS.soft,
-                      borderRadius: "999px",
-                      padding: "7px 9px",
-                      fontSize: "10px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {loading && (
-              <div
-                style={{
-                  color: COLORS.muted,
-                  fontSize: "11px",
-                }}
-              >
-                Thinking...
-              </div>
-            )}
-          </div>
-
-          <div
-            style={{
-              padding: "10px",
-              borderTop: `1px solid ${COLORS.border}`,
-              display: "flex",
-              gap: "7px",
-            }}
-          >
-            <input
-              value={input}
-              onChange={(event) =>
-                setInput(event.target.value)
-              }
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  sendMessage();
-                }
-              }}
-              placeholder="Ask about your loan..."
-              style={{
-                ...inputStyle,
-                flex: 1,
-                padding: "10px",
-              }}
-            />
-
-            <button
-              onClick={() => sendMessage()}
-              disabled={loading || !input.trim()}
-              style={{
-                ...primaryButton,
-                padding: "10px 13px",
-                opacity:
-                  loading || !input.trim()
-                    ? 0.45
-                    : 1,
-              }}
-            >
-              ➤
-            </button>
-          </div>
-        </div>
-      )}
-
-      <button
-        onClick={() => setOpen((value) => !value)}
-        title="Ask Loan Assistant"
-        style={{
-          position: "fixed",
-          right: "22px",
-          bottom: "20px",
-          width: "58px",
-          height: "58px",
-          borderRadius: "50%",
-          background: COLORS.teal,
-          border: "none",
-          color: "#fff",
-          fontSize: "23px",
-          cursor: "pointer",
-          zIndex: 2000,
-          boxShadow:
-            "0 7px 25px rgba(13,148,136,0.4)",
-        }}
-      >
-        {open ? "✕" : "🤖"}
-      </button>
-    </>
-  );
-}
-
-/* =========================================================
    MAIN PAGE
 ========================================================= */
 
@@ -4593,8 +4291,6 @@ export default function LoanAssistant({
             </div>
           </>
         )}
-
-      <FloatingLoanChat />
 
       {/* Global animation */}
       <style>{`

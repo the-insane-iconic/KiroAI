@@ -1,7 +1,6 @@
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
-import VoiceProgressButton from "../pages/VoiceProgressButton";
 
 function Layout() {
   return (
@@ -9,12 +8,13 @@ function Layout() {
       style={{
         display: "flex",
         minHeight: "100vh",
-        background: "#121212", // Dark background
-        color: "#ffffff",      // White text
-        fontFamily: "system-ui, -apple-system, sans-serif",
+        background: "var(--bg)",
+        color: "var(--text)",
+        fontFamily: "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        transition: "background 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
-      {/* Sidebar handles page navigation item triggers */}
+      {/* Sidebar handles structured navigation */}
       <Sidebar />
 
       <div
@@ -22,23 +22,26 @@ function Layout() {
           flex: 1,
           display: "flex",
           flexDirection: "column",
+          minWidth: 0,
+          background: "radial-gradient(ellipse at 80% 0%, var(--glow) 0%, transparent 60%), var(--bg)",
+          transition: "background 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
         <Navbar />
 
-        <div
+        <main
           style={{
-            padding: "24px",
+            flex: 1,
+            padding: "24px 28px 40px 28px",
             overflowY: "auto",
+            boxSizing: "border-box",
+            transition: "background 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         >
-          {/* Outlet injects the matched child page component (Dashboard, Premium, etc.) */}
+          {/* Child pages (Dashboard, Goals, Loans, Investments, etc.) */}
           <Outlet />
-        </div>
+        </main>
       </div>
-
-      {/* Sits outside <Outlet />, persisting across every single route layout pass */}
-      <VoiceProgressButton />
     </div>
   );
 }

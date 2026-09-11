@@ -1,9 +1,14 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  "http://127.0.0.1:5000";
+const API_URL = (
+  import.meta.env.VITE_BACKEND_URL?.trim() ||
+  import.meta.env.VITE_API_URL?.trim() ||
+  (window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? "http://127.0.0.1:5001"
+    : "/api")
+).replace(/\/$/, "");
 
 export default function Register() {
   const navigate = useNavigate();
@@ -12,86 +17,49 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [termsAccepted, setTermsAccepted] =
-    useState(false);
-
-  const [legalModal, setLegalModal] =
-    useState(null);
-
+  const [legalModal, setLegalModal] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleRegister = async (e) => {
     e.preventDefault();
-
     setError("");
 
-    if (
-      !name.trim() ||
-      !email.trim() ||
-      !password
-    ) {
-      setError("Please fill in all fields.");
+    if (!name.trim() || !email.trim() || !password) {
+      setError("Please fill in all required fields.");
       return;
     }
 
     if (password.length < 6) {
-      setError(
-        "Password must be at least 6 characters."
-      );
-      return;
-    }
-
-    if (!termsAccepted) {
-      setError(
-        "Please accept the Terms & Conditions and Privacy Policy."
-      );
+      setError("Password must be at least 6 characters.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await fetch(
-        `${API_URL}/register`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            name: name.trim(),
-            email: email.trim(),
-            password,
-            termsAccepted: true,
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          password,
+          termsAccepted: true,
+        }),
+      });
 
-      const data = await response.json();
-
-      console.log("REGISTER RESPONSE:", data);
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok || !data.success) {
-        throw new Error(
-          data.message ||
-            "Could not create your account."
-        );
+        throw new Error(data.message || data.error || "Could not create your account.");
       }
-
-      alert(
-        "✅ Registration Successful!\n\nPlease login to continue."
-      );
 
       navigate("/login");
     } catch (err) {
       console.error("REGISTER ERROR:", err);
-
-      setError(
-        err.message ||
-          "Unable to register."
-      );
+      setError(err.message || "Unable to register.");
     } finally {
       setLoading(false);
     }
@@ -99,436 +67,345 @@ export default function Register() {
 
   return (
     <div style={containerStyle}>
+      {/* Background Glow */}
+      <div
+        style={{
+          position: "absolute",
+          width: "500px",
+          height: "500px",
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(13,148,136,0.18) 0%, transparent 70%)",
+          top: "10%",
+          left: "50%",
+          transform: "translateX(-50%)",
+          pointerEvents: "none",
+        }}
+      />
+
       <div style={cardStyle}>
-
-        <h2 style={titleStyle}>
-          Amivest AI
-        </h2>
-
-        <p style={subtitleStyle}>
-          Create your AI Financial Guardian account
-        </p>
-
-        {error && (
-          <div style={errorStyle}>
-            ⚠️ {error}
+        {/* Brand Header */}
+        <div style={{ textAlign: "center", marginBottom: "24px" }}>
+          <div
+            style={{
+              width: "48px",
+              height: "48px",
+              borderRadius: "14px",
+              background: "linear-gradient(135deg, #0D9488, #06B6D4)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "24px",
+              fontWeight: "900",
+              color: "#fff",
+              boxShadow: "0 8px 24px rgba(13, 148, 136, 0.4)",
+              marginBottom: "12px",
+            }}
+          >
+            A
           </div>
-        )}
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "26px",
+              fontWeight: "800",
+              background: "linear-gradient(90deg, #14B8A6, #2DD4BF, #38BDF8)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              letterSpacing: "-0.5px",
+            }}
+          >
+            Amivest AI
+          </h1>
+          <p style={{ margin: "4px 0 0", color: "#94A3B8", fontSize: "12px" }}>
+            Create your Rural & MSME Financial Co-Pilot account
+          </p>
+        </div>
 
-        <form onSubmit={handleRegister}>
+        {error && <div style={errorStyle}>⚠️ {error}</div>}
 
-          <input
-            style={inputStyle}
-            type="text"
-            placeholder="Full Name"
-            value={name}
-            onChange={(e) =>
-              setName(e.target.value)
-            }
-            autoComplete="name"
-          />
-
-          <input
-            style={inputStyle}
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) =>
-              setEmail(e.target.value)
-            }
-            autoComplete="email"
-          />
-
-          <input
-            style={inputStyle}
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) =>
-              setPassword(e.target.value)
-            }
-            autoComplete="new-password"
-          />
-
-          {/* TERMS CHECKBOX */}
-
-          <div style={termsBoxStyle}>
-
+        <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          <div>
+            <label style={labelStyle}>Full Name</label>
             <input
-              id="registerTerms"
-              type="checkbox"
-              checked={termsAccepted}
-              onChange={(e) => {
-                setTermsAccepted(
-                  e.target.checked
-                );
-                setError("");
-              }}
-              style={checkboxStyle}
+              style={inputStyle}
+              type="text"
+              placeholder="Deepanshu Sharma"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoComplete="name"
+              required
             />
+          </div>
 
-            <label
-              htmlFor="registerTerms"
-              style={termsLabelStyle}
-            >
-              I agree to the{" "}
+          <div>
+            <label style={labelStyle}>Email Address</label>
+            <input
+              style={inputStyle}
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+            />
+          </div>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setLegalModal("terms")
-                }
-                style={legalButtonStyle}
-              >
-                Terms & Conditions
-              </button>
-
-              {" "}and{" "}
-
-              <button
-                type="button"
-                onClick={() =>
-                  setLegalModal("privacy")
-                }
-                style={legalButtonStyle}
-              >
-                Privacy Policy
-              </button>
-            </label>
-
+          <div>
+            <label style={labelStyle}>Create Password</label>
+            <input
+              style={inputStyle}
+              type="password"
+              placeholder="At least 6 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              required
+            />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            style={{
-              ...buttonStyle,
-              opacity: loading ? 0.6 : 1,
-              cursor: loading
-                ? "not-allowed"
-                : "pointer",
-            }}
+            style={buttonStyle}
           >
-            {loading
-              ? "Creating Account..."
-              : "Create Account"}
+            {loading ? "Creating Account..." : "Create Account →"}
           </button>
-
         </form>
+
+        {/* Legal Disclaimer */}
+        <p style={termsLabelStyle}>
+          By registering, you accept our{" "}
+          <button type="button" onClick={() => setLegalModal("terms")} style={legalButtonStyle}>
+            Terms of Service
+          </button>{" "}
+          and{" "}
+          <button type="button" onClick={() => setLegalModal("privacy")} style={legalButtonStyle}>
+            Privacy Policy
+          </button>
+          .
+        </p>
 
         <p style={loginTextStyle}>
           Already have an account?{" "}
-
-          <Link
-            to="/login"
-            style={linkStyle}
-          >
-            Login
+          <Link to="/login" style={linkStyle}>
+            Sign In
           </Link>
         </p>
-
       </div>
 
-      {/* LEGAL MODAL */}
-
-      {legalModal && (
-        <LegalModal
-          type={legalModal}
-          onClose={() =>
-            setLegalModal(null)
-          }
-        />
-      )}
-
+      {legalModal && <LegalModal type={legalModal} onClose={() => setLegalModal(null)} />}
     </div>
   );
 }
-
-
-// =====================================================
-// LEGAL MODAL
-// =====================================================
 
 function LegalModal({ type, onClose }) {
   const isTerms = type === "terms";
 
   return (
-    <div style={modalOverlayStyle}>
-
-      <div style={modalStyle}>
-
+    <div style={modalOverlayStyle} onClick={onClose}>
+      <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
         <div style={modalHeaderStyle}>
-
-          <h3 style={{ margin: 0 }}>
-            {isTerms
-              ? "Terms & Conditions"
-              : "Privacy Policy"}
+          <h3 style={{ margin: 0, color: "#2DD4BF", fontSize: "16px" }}>
+            {isTerms ? "Terms & Conditions" : "Privacy Policy"}
           </h3>
-
-          <button
-            type="button"
-            onClick={onClose}
-            style={closeButtonStyle}
-          >
+          <button type="button" onClick={onClose} style={closeButtonStyle}>
             ✕
           </button>
-
         </div>
 
         <div style={modalContentStyle}>
-
           {isTerms ? (
             <>
-              <h4>1. Acceptance</h4>
-              <p>
-                By using Amivest AI, you agree to
-                these Terms & Conditions.
-              </p>
+              <h4 style={{ color: "#F8FAFC", margin: "12px 0 4px" }}>1. Acceptance</h4>
+              <p>By using Amivest AI, you agree to these Terms & Conditions for financial guidance, loan eligibility tools, and feasibility intelligence.</p>
 
-              <h4>2. Account</h4>
-              <p>
-                You are responsible for keeping
-                your account information secure.
-              </p>
+              <h4 style={{ color: "#F8FAFC", margin: "12px 0 4px" }}>2. Advisory Scope</h4>
+              <p>Amivest AI provides educational and data-driven insights. Official loan sanctions are subject to government nodal agencies and banking parameters.</p>
 
-              <h4>3. Financial Information</h4>
-              <p>
-                Amivest AI provides educational
-                and informational financial
-                assistance. It does not guarantee
-                investment returns.
-              </p>
-
-              <h4>4. Responsible Use</h4>
-              <p>
-                You agree to use the application
-                lawfully and responsibly.
-              </p>
+              <h4 style={{ color: "#F8FAFC", margin: "12px 0 4px" }}>3. Data Privacy</h4>
+              <p>Financial records, PIN lookups, and feasibility evaluations are encrypted and strictly scoped to your authorized user session.</p>
             </>
           ) : (
             <>
-              <h4>1. Information</h4>
-              <p>
-                Amivest AI may collect information
-                such as your name and email to
-                provide account services.
-              </p>
+              <h4 style={{ color: "#F8FAFC", margin: "12px 0 4px" }}>1. Data Encryption</h4>
+              <p>All bank statement extractions, loan inputs, and session credentials are encrypted in transit and at rest.</p>
 
-              <h4>2. Security</h4>
-              <p>
-                We use reasonable security
-                measures to protect your account
-                information.
-              </p>
-
-              <h4>3. Your Data</h4>
-              <p>
-                Your information is used to
-                provide and improve Amivest AI
-                services.
-              </p>
-
-              <h4>4. Contact</h4>
-              <p>
-                You can contact the Amivest AI
-                team regarding privacy questions.
-              </p>
+              <h4 style={{ color: "#F8FAFC", margin: "12px 0 4px" }}>2. Zero Telemetry Leaks</h4>
+              <p>Your business idea, financial logs, and personal identity numbers are never sold or shared with unverified external third parties.</p>
             </>
           )}
-
         </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-          style={modalDoneButtonStyle}
-        >
-          Close
+        <button type="button" onClick={onClose} style={modalDoneButtonStyle}>
+          Understood
         </button>
-
       </div>
-
     </div>
   );
 }
 
-
-// =====================================================
-// STYLES
-// =====================================================
-
 const containerStyle = {
   minHeight: "100vh",
-  background: "#0f172a",
+  background: "var(--bg)",
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
-  padding: "20px",
+  padding: "24px 16px",
   boxSizing: "border-box",
+  position: "relative",
+  overflow: "hidden",
+  fontFamily: "Inter, system-ui, -apple-system, sans-serif",
+  transition: "all 0.28s ease",
 };
 
 const cardStyle = {
   width: "100%",
-  maxWidth: 420,
-  background: "#1e293b",
-  padding: 30,
-  borderRadius: 14,
-  boxShadow: "0 0 30px rgba(0,0,0,.35)",
+  maxWidth: "440px",
+  background: "var(--surface)",
+  padding: "36px 32px",
+  borderRadius: "24px",
+  border: "1px solid var(--border)",
+  boxShadow: "var(--shadow-md)",
+  backdropFilter: "blur(20px)",
   boxSizing: "border-box",
+  position: "relative",
+  zIndex: 2,
+  transition: "all 0.28s ease",
 };
 
-const titleStyle = {
-  color: "#fff",
-  textAlign: "center",
-  marginBottom: 8,
-  fontSize: 28,
-};
-
-const subtitleStyle = {
-  color: "#94a3b8",
-  textAlign: "center",
-  marginBottom: 25,
-};
-
-const errorStyle = {
-  background: "#3f1515",
-  border: "1px solid #ef4444",
-  color: "#fca5a5",
-  padding: 12,
-  borderRadius: 8,
-  marginBottom: 18,
-  fontSize: 14,
+const labelStyle = {
+  display: "block",
+  fontSize: "11.5px",
+  fontWeight: "700",
+  color: "var(--muted)",
+  marginBottom: "6px",
 };
 
 const inputStyle = {
   width: "100%",
-  padding: 14,
-  marginBottom: 15,
-  borderRadius: 8,
-  border: "1px solid #334155",
-  background: "#0f172a",
-  color: "#fff",
-  fontSize: 15,
+  padding: "12px 14px",
+  borderRadius: "12px",
+  border: "1px solid var(--border)",
+  background: "var(--surface-soft)",
+  color: "var(--text-h)",
+  fontSize: "14px",
   boxSizing: "border-box",
   outline: "none",
+  transition: "all 0.2s ease",
 };
 
 const buttonStyle = {
   width: "100%",
-  padding: 14,
-  marginTop: 18,
-  background: "#14b8a6",
-  color: "#fff",
+  padding: "13px",
+  background: "linear-gradient(90deg, var(--primary-accent), var(--primary))",
+  color: "#FFFFFF",
   border: "none",
-  borderRadius: 8,
-  fontSize: 16,
-  fontWeight: "bold",
-};
-
-const termsBoxStyle = {
-  display: "flex",
-  alignItems: "flex-start",
-  gap: 9,
-  marginTop: 4,
-};
-
-const checkboxStyle = {
-  marginTop: 3,
-  width: 16,
-  height: 16,
+  borderRadius: "12px",
+  fontSize: "13.5px",
+  fontWeight: "700",
   cursor: "pointer",
-  accentColor: "#14b8a6",
-  flexShrink: 0,
+  boxShadow: "0 4px 16px rgba(13, 148, 136, 0.4)",
+  transition: "transform 0.15s ease",
+  marginTop: "4px",
+};
+
+const errorStyle = {
+  background: "rgba(239, 68, 68, 0.14)",
+  border: "1px solid rgba(239, 68, 68, 0.35)",
+  color: "#EF4444",
+  padding: "11px 14px",
+  borderRadius: "10px",
+  marginBottom: "16px",
+  fontSize: "12.5px",
 };
 
 const termsLabelStyle = {
-  color: "#94a3b8",
-  fontSize: 12,
-  lineHeight: 1.6,
+  marginTop: "20px",
+  color: "var(--muted)",
+  fontSize: "11px",
+  textAlign: "center",
+  lineHeight: "1.5",
 };
 
 const legalButtonStyle = {
   background: "none",
   border: "none",
-  padding: 0,
-  color: "#14b8a6",
-  fontWeight: "bold",
+  color: "var(--primary-accent)",
+  fontSize: "11px",
   cursor: "pointer",
-  fontSize: 12,
-};
-
-const linkStyle = {
-  color: "#14b8a6",
-  fontWeight: "bold",
-  textDecoration: "none",
+  fontWeight: "600",
+  padding: 0,
+  textDecoration: "underline",
 };
 
 const loginTextStyle = {
-  color: "#94a3b8",
+  marginTop: "16px",
   textAlign: "center",
-  marginTop: 20,
+  color: "var(--muted)",
+  fontSize: "12.5px",
 };
 
-
-// =====================================================
-// MODAL STYLES
-// =====================================================
+const linkStyle = {
+  color: "var(--primary-accent)",
+  fontWeight: "700",
+  textDecoration: "none",
+  marginLeft: "4px",
+};
 
 const modalOverlayStyle = {
   position: "fixed",
   inset: 0,
-  background: "rgba(0,0,0,.75)",
+  background: "rgba(0, 0, 0, 0.65)",
   display: "flex",
-  justifyContent: "center",
   alignItems: "center",
-  padding: 20,
-  zIndex: 9999,
+  justifyContent: "center",
+  zIndex: 10000,
+  padding: "20px",
+  backdropFilter: "blur(8px)",
 };
 
 const modalStyle = {
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
+  borderRadius: "20px",
+  padding: "24px",
+  maxWidth: "460px",
   width: "100%",
-  maxWidth: 550,
-  maxHeight: "80vh",
-  background: "#1e293b",
-  borderRadius: 14,
-  boxShadow: "0 0 40px rgba(0,0,0,.6)",
-  overflow: "hidden",
+  color: "var(--text)",
+  boxShadow: "var(--shadow-md)",
 };
 
 const modalHeaderStyle = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  padding: "18px 22px",
-  color: "#fff",
-  borderBottom: "1px solid #334155",
+  paddingBottom: "12px",
+  borderBottom: "1px solid var(--border)",
 };
 
 const closeButtonStyle = {
   background: "transparent",
   border: "none",
-  color: "#94a3b8",
-  fontSize: 20,
+  color: "var(--muted)",
+  fontSize: "16px",
   cursor: "pointer",
 };
 
 const modalContentStyle = {
-  padding: "20px 22px",
-  color: "#cbd5e1",
-  fontSize: 14,
-  lineHeight: 1.6,
-  overflowY: "auto",
-  maxHeight: "55vh",
+  fontSize: "12.5px",
+  lineHeight: "1.6",
+  color: "var(--muted)",
+  margin: "14px 0",
 };
 
 const modalDoneButtonStyle = {
-  margin: "0 22px 20px",
-  width: "calc(100% - 44px)",
-  padding: 12,
-  background: "#14b8a6",
-  color: "#fff",
+  width: "100%",
+  padding: "10px",
+  borderRadius: "10px",
   border: "none",
-  borderRadius: 8,
-  fontWeight: "bold",
+  background: "var(--primary)",
+  color: "#fff",
+  fontWeight: "700",
+  fontSize: "12.5px",
   cursor: "pointer",
 };

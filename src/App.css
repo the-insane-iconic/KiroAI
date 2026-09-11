@@ -1,29 +1,67 @@
 /* =========================================================
    AmiVest Global Application Styles
-   Compact Premium Fintech UI
+   Unified Multi-Theme Fintech Theme
    ========================================================= */
 
-:root {
-    --av-bg: #f4f8f6;
-    --av-surface: #ffffff;
-    --av-surface-soft: #f8fbfa;
-    --av-ink: #152b32;
-    --av-muted: #74878d;
-    --av-subtle: #94a3a7;
-    --av-border: #e2ece8;
-    --av-border-strong: #d4e4de;
-    --av-primary: #0d9b72;
-    --av-primary-dark: #087b5c;
-    --av-primary-soft: #e9f7f1;
-    --av-blue: #176f88;
-    --av-danger: #cf6557;
-    --av-warning: #b27820;
-    --av-shadow-sm: 0 8px 24px rgba(20, 70, 61, 0.055);
-    --av-shadow: 0 16px 45px rgba(20, 70, 61, 0.075);
+:root,
+[data-theme="emerald"] {
+    --av-bg: var(--bg);
+    --av-surface: var(--surface);
+    --av-surface-soft: var(--surface-soft);
+    --av-ink: var(--text-h);
+    --av-text: var(--text);
+    --av-muted: var(--muted);
+    --av-subtle: var(--subtle);
+    --av-border: var(--border);
+    --av-border-strong: var(--border-strong);
+    --av-primary: var(--primary);
+    --av-primary-dark: var(--primary-dark);
+    --av-primary-soft: var(--primary-soft);
+    --av-blue: var(--blue);
+    --av-danger: var(--danger);
+    --av-warning: var(--warning);
+    --av-shadow-sm: var(--shadow-sm);
+    --av-shadow: var(--shadow-md);
     --av-radius-sm: 10px;
     --av-radius: 14px;
     --av-radius-lg: 20px;
-    --av-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --av-font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+[data-theme="midnight"] {
+    --av-bg: var(--bg);
+    --av-surface: var(--surface);
+    --av-surface-soft: var(--surface-soft);
+    --av-ink: var(--text-h);
+    --av-text: var(--text);
+    --av-muted: var(--muted);
+    --av-subtle: var(--subtle);
+    --av-border: var(--border);
+    --av-border-strong: var(--border-strong);
+    --av-primary: var(--primary);
+    --av-primary-dark: var(--primary-dark);
+    --av-primary-soft: var(--primary-soft);
+    --av-blue: #818CF8;
+    --av-shadow-sm: var(--shadow-sm);
+    --av-shadow: var(--shadow-md);
+}
+
+[data-theme="light"] {
+    --av-bg: var(--bg);
+    --av-surface: var(--surface);
+    --av-surface-soft: var(--surface-soft);
+    --av-ink: var(--text-h);
+    --av-text: var(--text);
+    --av-muted: var(--muted);
+    --av-subtle: var(--subtle);
+    --av-border: var(--border);
+    --av-border-strong: var(--border-strong);
+    --av-primary: var(--primary);
+    --av-primary-dark: var(--primary-dark);
+    --av-primary-soft: var(--primary-soft);
+    --av-blue: #0284C7;
+    --av-shadow-sm: var(--shadow-sm);
+    --av-shadow: var(--shadow-md);
 }
 
 * {
@@ -42,9 +80,9 @@ body {
     min-width: 320px;
     min-height: 100vh;
     font-family: var(--av-font);
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.5;
-    color: var(--av-ink);
+    color: var(--av-text);
     background: var(--av-bg);
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -143,7 +181,7 @@ p {
 }
 
 small {
-    font-size: 10px;
+    font-size: 11px;
 }
 
 strong {
@@ -155,23 +193,25 @@ select,
 textarea {
     width: 100%;
     color: var(--av-ink);
-    background: var(--av-surface);
+    background: var(--av-surface-soft);
     border: 1px solid var(--av-border);
     border-radius: var(--av-radius-sm);
     outline: none;
-    transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+    transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease, color 180ms ease;
+    padding: 10px 14px;
 }
 
 input::placeholder,
 textarea::placeholder {
-    color: #9aa8ab;
+    color: var(--av-muted);
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-    border-color: #9ccfbd;
-    box-shadow: 0 0 0 3px rgba(13, 155, 114, 0.09);
+    border-color: var(--av-primary);
+    box-shadow: 0 0 0 3px var(--av-primary-soft);
+    background: var(--av-surface);
 }
 
 button:focus-visible,
@@ -179,12 +219,12 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-    outline: 3px solid rgba(13, 155, 114, 0.16);
+    outline: 2px solid var(--av-primary);
     outline-offset: 2px;
 }
 
 ::selection {
-    background: rgba(13, 155, 114, 0.18);
+    background: var(--av-primary-soft);
     color: var(--av-ink);
 }
 
@@ -196,7 +236,7 @@ textarea:focus-visible {
 .av-page {
     width: 100%;
     min-height: 100vh;
-    color: var(--av-ink);
+    color: var(--av-text);
     background: var(--av-bg);
 }
 
@@ -206,17 +246,21 @@ textarea:focus-visible {
 }
 
 .av-surface {
-    background: rgba(255, 255, 255, 0.92);
+    background: var(--av-surface);
     border: 1px solid var(--av-border);
     border-radius: var(--av-radius);
     box-shadow: var(--av-shadow-sm);
+    color: var(--av-text);
+    backdrop-filter: blur(14px);
 }
 
 .av-panel {
-    background: rgba(255, 255, 255, 0.94);
+    background: var(--av-surface);
     border: 1px solid var(--av-border);
     border-radius: var(--av-radius-lg);
-    box-shadow: var(--av-shadow-sm);
+    box-shadow: var(--av-shadow);
+    color: var(--av-text);
+    backdrop-filter: blur(14px);
 }
 
 .av-muted {
@@ -228,8 +272,8 @@ textarea:focus-visible {
 }
 
 .av-eyebrow {
-    color: #5e867c;
-    font-size: 8px;
+    color: var(--av-primary);
+    font-size: 9px;
     line-height: 1.2;
     font-weight: 900;
     letter-spacing: 1.35px;
@@ -237,22 +281,26 @@ textarea:focus-visible {
 }
 
 .av-primary {
-    background: var(--av-primary);
+    background: linear-gradient(135deg, var(--av-primary), #10B981);
     color: #ffffff;
 }
 
 .av-primary:hover {
-    background: var(--av-primary-dark);
+    background: linear-gradient(135deg, var(--av-primary-dark), #059669);
 }
 
 .av-button {
     min-height: 38px;
-    padding: 0 13px;
+    padding: 0 14px;
     border: 0;
     border-radius: 11px;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 800;
     transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .av-button:hover {
@@ -264,23 +312,24 @@ textarea:focus-visible {
 }
 
 .av-button-primary {
-    background: var(--av-primary);
+    background: linear-gradient(135deg, #0D9488, #10B981);
     color: #ffffff;
 }
 
 .av-button-primary:hover {
-    background: var(--av-primary-dark);
-    box-shadow: 0 8px 20px rgba(13, 155, 114, 0.15);
+    background: linear-gradient(135deg, #0F766E, #059669);
+    box-shadow: 0 8px 20px rgba(13, 148, 136, 0.3);
 }
 
 .av-button-secondary {
-    background: #f1f7f4;
-    color: #19755c;
-    border: 1px solid #dcebe5;
+    background: rgba(30, 41, 59, 0.75);
+    color: #2DD4BF;
+    border: 1px solid rgba(13, 148, 136, 0.3);
 }
 
 .av-button-secondary:hover {
-    background: #e8f4ef;
+    background: rgba(30, 41, 59, 0.95);
+    border-color: #2DD4BF;
 }
 
 .av-chip {
@@ -290,10 +339,10 @@ textarea:focus-visible {
     min-height: 24px;
     padding: 0 9px;
     border-radius: 999px;
-    background: var(--av-primary-soft);
-    color: var(--av-primary-dark);
-    border: 1px solid #d8eee5;
-    font-size: 8px;
+    background: rgba(13, 148, 136, 0.15);
+    color: #2DD4BF;
+    border: 1px solid rgba(13, 148, 136, 0.3);
+    font-size: 9px;
     font-weight: 800;
 }
 
@@ -388,10 +437,10 @@ textarea:focus-visible {
 @keyframes avPulse {
     0%,
     100% {
-        box-shadow: 0 0 0 0 rgba(13, 155, 114, 0.12);
+        box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.2);
     }
     50% {
-        box-shadow: 0 0 0 8px rgba(13, 155, 114, 0);
+        box-shadow: 0 0 0 8px rgba(45, 212, 191, 0);
     }
 }
 
@@ -435,17 +484,18 @@ textarea:focus-visible {
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 th {
     font-weight: 800;
     text-align: left;
+    color: var(--av-muted);
 }
 
 td,
 th {
-    padding: 8px 10px;
+    padding: 10px 12px;
     border-bottom: 1px solid var(--av-border);
 }
 
@@ -468,7 +518,7 @@ th {
 
 @media (max-width: 640px) {
     body {
-        font-size: 11px;
+        font-size: 12px;
     }
     .av-container {
         width: calc(100% - 20px);

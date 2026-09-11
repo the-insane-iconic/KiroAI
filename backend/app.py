@@ -52,7 +52,7 @@ FRONTEND_URL = os.getenv(
 PORT = int(
     os.getenv(
         "PORT",
-        "5000"
+        "5001"
     )
 )
 
@@ -123,30 +123,11 @@ CORS(
 # ============================================================
 
 try:
-
-    from database.db import database
-
+    from database.db import get_connection
 except Exception:
-
-    database = None
-
-    print(
-        "WARNING: database module could not be loaded:"
-    )
-
+    get_connection = None
+    print("WARNING: database module could not be loaded:")
     traceback.print_exc()
-
-
-# ============================================================
-# OPTIONAL DATABASE COMPATIBILITY
-# ============================================================
-
-def get_connection():
-
-    if database is None:
-        return None
-
-    return database()
 
 
 # ============================================================
@@ -155,7 +136,7 @@ def get_connection():
 # Authorization always uses the server-side Flask session.
 # A user_id supplied by the browser is never trusted.
 def get_authenticated_user_id():
-    user_id = get_authenticated_user_id()
+    user_id = session.get("user_id")
 
     if user_id is None or str(user_id).strip() == "":
         return None
@@ -2291,7 +2272,7 @@ if __name__ == "__main__":
         +
         (
             "ENABLED"
-            if database is not None
+            if get_connection is not None
             else "DISABLED"
         )
     )
@@ -2361,11 +2342,8 @@ if __name__ == "__main__":
     )
 
     app.run(
-
         host=host,
-
         port=PORT,
-
         debug=not IS_PRODUCTION,
-
+        use_reloader=False,
     )

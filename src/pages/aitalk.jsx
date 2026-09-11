@@ -12,7 +12,7 @@ import React, {
 const BACKEND_URL = (
   import.meta.env.VITE_BACKEND_URL ||
   import.meta.env.VITE_API_URL ||
-  "http://127.0.0.1:5000"
+  "http://127.0.0.1:5001"
 ).replace(/\/+$/, "");
 
 
@@ -1279,7 +1279,8 @@ function AITalk() {
       style={{
         minHeight: "calc(100vh - 80px)",
         padding: "30px",
-        color: "#fff",
+        color: "var(--text)",
+        transition: "all 0.28s ease",
       }}
     >
 
@@ -1295,7 +1296,7 @@ function AITalk() {
 
         <div
           style={{
-            color: "#14B8A6",
+            color: "var(--primary-accent)",
             fontSize: "12px",
             fontWeight: 800,
             letterSpacing: "2px",
@@ -1310,6 +1311,7 @@ function AITalk() {
             margin: "8px 0 5px",
             fontSize: "34px",
             fontWeight: 800,
+            color: "var(--text-h)",
           }}
         >
           AmiVest Alexa AI 🎙️📷
@@ -1318,7 +1320,7 @@ function AITalk() {
 
         <p
           style={{
-            color: "#94A3B8",
+            color: "var(--muted)",
             margin: 0,
           }}
         >
@@ -1337,12 +1339,12 @@ function AITalk() {
         style={{
           maxWidth: "1000px",
           margin: "auto",
-          background: "#0F2943",
-          border: "1px solid #193E60",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
           borderRadius: "20px",
           padding: "25px",
-          boxShadow:
-            "0 20px 60px rgba(0,0,0,.30)",
+          boxShadow: "var(--shadow-md)",
+          transition: "all 0.28s ease",
         }}
       >
 
@@ -2046,11 +2048,12 @@ function AITalk() {
                 "14px 16px",
               borderRadius: "10px",
               border:
-                "1px solid #315474",
-              background: "#0B1C2D",
-              color: "#fff",
+                "1px solid var(--border)",
+              background: "var(--surface-soft)",
+              color: "var(--text-h)",
               outline: "none",
               fontSize: "15px",
+              transition: "all 0.28s ease",
             }}
           />
 
@@ -2285,13 +2288,14 @@ function AITalk() {
    ============================================================ */
 
 const quickButtonStyle = {
-  background: "#0B1C2D",
-  border: "1px solid #315474",
-  color: "#CBD5E1",
+  background: "var(--surface-soft)",
+  border: "1px solid var(--border)",
+  color: "var(--text-h)",
   padding: "8px 12px",
   borderRadius: "20px",
   cursor: "pointer",
   fontSize: "12px",
+  transition: "all 0.28s ease",
 };
 
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -29,8 +29,9 @@ import AddTransaction from "./pages/AddTransaction";
 import ImportStatement from "./pages/ImportStatement";
 import Chat from "./pages/Chat";
 import Premium from "./pages/Premium";
-import RentHome from "./pages/RentHome";
 import BusinessAdvisor from "./pages/BusinessAdvisor";
+import BusinessLaunchpad from "./pages/BusinessLaunchpad";
+
 
 /*
 ===========================================================
@@ -80,83 +81,8 @@ function makeId(prefix = "ID") {
 }
 
 /* =========================================================
-   GLOBAL MODE SWITCHER
+   STORAGE & HELPERS
 ========================================================= */
-
-function AmiVestModeSwitcher() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [open, setOpen] = useState(false);
-
-  const path = location.pathname;
-
-  const isRent = path.startsWith("/rent");
-  const isBusiness = path.startsWith("/business");
-  const isFinance = !isRent && !isBusiness;
-
-  const go = (target) => {
-    setOpen(false);
-    navigate(target);
-  };
-
-  return (
-    <div className="amivest-mode-wrapper">
-      <button
-        className="mode-main-button"
-        onClick={() => setOpen((v) => !v)}
-        aria-label="Switch AmiVest service"
-      >
-        <span className="mode-icon">
-          {isRent ? "🏠" : isBusiness ? "🏪" : "💰"}
-        </span>
-        <span>{isRent ? "AmiRent" : isBusiness ? "AmiBusiness" : "AmiVest"}</span>
-        <span className="mode-chevron">{open ? "▲" : "▼"}</span>
-      </button>
-
-      {open && (
-        <div className="mode-menu">
-          <div className="mode-menu-heading">Switch service</div>
-
-          <button
-            className={`mode-item ${isFinance ? "active" : ""}`}
-            onClick={() => go("/")}
-          >
-            <span className="mode-item-icon finance">💰</span>
-            <span>
-              <b>AmiVest</b>
-              <small>Personal Finance</small>
-            </span>
-            {isFinance && <strong>✓</strong>}
-          </button>
-
-          <button
-            className={`mode-item ${isRent ? "active" : ""}`}
-            onClick={() => go("/rent")}
-          >
-            <span className="mode-item-icon rent">🏠</span>
-            <span>
-              <b>AmiRent</b>
-              <small>PG • Room • Flat • Stay</small>
-            </span>
-            {isRent && <strong>✓</strong>}
-          </button>
-
-          <button
-            className={`mode-item ${isBusiness ? "active" : ""}`}
-            onClick={() => go("/business")}
-          >
-            <span className="mode-item-icon business">🏪</span>
-            <span>
-              <b>AmiBusiness</b>
-              <small>Business Feasibility</small>
-            </span>
-            {isBusiness && <strong>✓</strong>}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 /* =========================================================
    AMIRENT ROLE GATE
@@ -1616,8 +1542,6 @@ function App() {
 
   return (
     <BrowserRouter>
-      <AmiVestModeSwitcher />
-
       <Routes>
         {/* AUTH */}
         <Route path="/register" element={<Register />} />
@@ -1627,6 +1551,15 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route
             index
+            element={
+              <Dashboard
+                transactions={globalTransactions}
+                setTransactions={setGlobalTransactions}
+              />
+            }
+          />
+          <Route
+            path="dashboard"
             element={
               <Dashboard
                 transactions={globalTransactions}
@@ -1675,15 +1608,9 @@ function App() {
             element={<ImportStatement setTransactions={setGlobalTransactions} />}
           />
           <Route path="legacy-chat" element={<Chat />} />
+          <Route path="business" element={<BusinessAdvisor />} />
+          <Route path="launchpad" element={<BusinessLaunchpad />} />
         </Route>
-
-        {/* AMIRENT */}
-        <Route path="/rent" element={<RentRoleGate />} />
-        <Route path="/rent/renter" element={<RentRenterPage />} />
-        <Route path="/rent/owner" element={<RentOwnerPage />} />
-
-        {/* AMIBUSINESS */}
-        <Route path="/business" element={<BusinessAdvisor />} />
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
@@ -1704,91 +1631,232 @@ function App() {
 
         button { cursor: pointer; }
 
+        /* =========================================================
+           AMIVEST MODE SWITCHER (Top Right Dropdown)
+           ========================================================= */
         .amivest-mode-wrapper {
           position: fixed;
           top: 14px;
-          right: 18px;
+          right: 24px;
           z-index: 10000;
+          font-family: inherit;
         }
 
         .mode-main-button {
           display: flex;
           align-items: center;
-          gap: 8px;
-          border: 1px solid #dce6e3;
-          border-radius: 13px;
-          background: rgba(255,255,255,.97);
-          color: #14252b;
-          padding: 9px 12px;
-          box-shadow: 0 10px 30px rgba(15,45,38,.13);
-          font-size: 11px;
-          font-weight: 900;
-          backdrop-filter: blur(14px);
+          gap: 10px;
+          padding: 5px 12px 5px 6px;
+          border-radius: 9999px;
+          background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(10, 15, 29, 0.98) 100%);
+          border: 1px solid rgba(45, 212, 191, 0.35);
+          color: #FFFFFF;
+          cursor: pointer;
+          backdrop-filter: blur(20px);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 12px rgba(13, 148, 136, 0.15);
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .mode-icon {
-          width: 28px;
-          height: 28px;
+        .mode-main-button:hover {
+          border-color: rgba(45, 212, 191, 0.65);
+          box-shadow: 0 6px 25px rgba(0, 0, 0, 0.5), 0 0 18px rgba(13, 148, 136, 0.3);
+          transform: translateY(-1px);
+        }
+
+        .mode-icon-orb {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #0D9488, #06B6D4);
           display: grid;
           place-items: center;
-          border-radius: 9px;
-          background: #edf7f3;
+          font-size: 15px;
+          box-shadow: 0 0 10px rgba(13, 148, 136, 0.4);
+          flex-shrink: 0;
         }
 
-        .mode-chevron { color: #829096; font-size: 8px; }
+        .mode-text-group {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          text-align: left;
+        }
+
+        .mode-title {
+          font-size: 12px;
+          font-weight: 800;
+          color: #F8FAFC;
+          line-height: 1.2;
+          letter-spacing: -0.2px;
+        }
+
+        .mode-subtitle {
+          font-size: 9.5px;
+          color: #2DD4BF;
+          font-weight: 600;
+        }
+
+        .mode-chevron {
+          color: #64748B;
+          font-size: 8.5px;
+          margin-left: 2px;
+          transition: transform 0.2s ease;
+        }
+
+        .mode-chevron.open {
+          transform: rotate(180deg);
+          color: #2DD4BF;
+        }
 
         .mode-menu {
           position: absolute;
           right: 0;
           top: 48px;
-          width: 300px;
-          padding: 8px;
-          border: 1px solid #dce5e3;
-          border-radius: 16px;
-          background: white;
-          box-shadow: 0 25px 60px rgba(10,40,32,.18);
+          width: 320px;
+          padding: 12px;
+          border: 1px solid rgba(45, 212, 191, 0.3);
+          border-radius: 18px;
+          background: rgba(10, 15, 29, 0.98);
+          box-shadow: 0 25px 70px rgba(0, 0, 0, 0.85), 0 0 30px rgba(13, 148, 136, 0.2);
+          backdrop-filter: blur(24px);
+          animation: modeMenuFadeIn 0.18s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .mode-menu-heading {
-          padding: 8px 10px;
-          color: #89969b;
-          font-size: 9px;
-          font-weight: 900;
-          text-transform: uppercase;
+        @keyframes modeMenuFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-8px) scale(0.97);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        .mode-menu-header {
+          display: flex;
+          align-items: center;
+          justifyContent: space-between;
+          padding: 4px 6px 10px 6px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          font-size: 10px;
+          font-weight: 800;
+          color: #94A3B8;
           letter-spacing: 1px;
+          text-transform: uppercase;
+        }
+
+        .mode-live-pill {
+          font-size: 8.5px;
+          color: #10B981;
+          font-weight: 800;
+        }
+
+        .mode-menu-list {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          margin-top: 8px;
         }
 
         .mode-item {
           width: 100%;
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 10px;
-          border: 0;
-          border-radius: 11px;
-          background: white;
+          gap: 12px;
+          padding: 10px 12px;
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          border-radius: 13px;
+          background: rgba(15, 23, 42, 0.6);
           text-align: left;
+          cursor: pointer;
+          transition: all 0.18s ease;
+          color: #FFFFFF;
         }
 
-        .mode-item:hover, .mode-item.active { background: #edf8f4; }
+        .mode-item:hover {
+          background: rgba(15, 23, 42, 0.95);
+          border-color: rgba(45, 212, 191, 0.35);
+          transform: translateX(2px);
+        }
+
+        .mode-item.active {
+          background: linear-gradient(90deg, rgba(13, 148, 136, 0.22) 0%, rgba(6, 182, 212, 0.12) 100%);
+          border-color: rgba(45, 212, 191, 0.5);
+          box-shadow: 0 4px 14px rgba(13, 148, 136, 0.2);
+        }
 
         .mode-item-icon {
           width: 38px;
           height: 38px;
           display: grid;
           place-items: center;
-          border-radius: 10px;
+          border-radius: 11px;
           font-size: 18px;
+          flex-shrink: 0;
         }
 
-        .mode-item-icon.finance { background: #eef0ff; }
-        .mode-item-icon.rent { background: #eaf8f3; }
-        .mode-item-icon.business { background: #fff1df; }
+        .mode-item-icon.finance {
+          background: linear-gradient(135deg, rgba(13, 148, 136, 0.35), rgba(2, 132, 199, 0.35));
+          border: 1px solid rgba(45, 212, 191, 0.4);
+        }
 
-        .mode-item span:nth-child(2) { flex: 1; }
-        .mode-item b { display: block; font-size: 11px; }
-        .mode-item small { display: block; margin-top: 3px; color: #89959a; font-size: 8px; }
-        .mode-item > strong { color: #07855f; }
+        .mode-item-icon.business {
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.35), rgba(5, 150, 105, 0.35));
+          border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .mode-item-details {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .mode-item-title-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 2px;
+        }
+
+        .mode-item-title-row b {
+          font-size: 13px;
+          font-weight: 800;
+          color: #F8FAFC;
+        }
+
+        .mode-item-badge {
+          font-size: 8.5px;
+          font-weight: 700;
+          padding: 1px 6px;
+          border-radius: 9999px;
+        }
+
+        .mode-item-badge.finance {
+          background: rgba(45, 212, 191, 0.15);
+          color: #2DD4BF;
+          border: 1px solid rgba(45, 212, 191, 0.3);
+        }
+
+        .mode-item-badge.business {
+          background: rgba(16, 185, 129, 0.15);
+          color: #10B981;
+          border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .mode-item-details small {
+          display: block;
+          font-size: 10px;
+          color: #94A3B8;
+          line-height: 1.35;
+        }
+
+        .mode-item-check {
+          color: #2DD4BF;
+          font-weight: 900;
+          font-size: 14px;
+          flex-shrink: 0;
+          padding-left: 4px;
+        }
 
         /* ---------- COMMON ---------- */
 

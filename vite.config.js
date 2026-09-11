@@ -16,7 +16,7 @@ export default defineConfig({
             // Backend:
             //   /loans/analysis
             "/api": {
-                target: "http://127.0.0.1:5000",
+                target: "http://127.0.0.1:5001",
                 changeOrigin: true,
                 secure: false,
 
@@ -25,37 +25,50 @@ export default defineConfig({
                 rewrite: (path) => path.replace(/^\/api/, ""),
             },
 
-            // Flask auth endpoints are at root:
-            // /login
-            // /register
-            // /session
-            // etc.
+            // Flask auth endpoints
             "/login": {
-                target: "http://127.0.0.1:5000",
+                target: "http://127.0.0.1:5001",
                 changeOrigin: true,
                 secure: false,
+                bypass: (req) => {
+                    // Only proxy API / POST requests; allow browser navigation to serve SPA HTML
+                    if (req.method === "GET" && req.headers.accept?.includes("text/html")) {
+                        return "/index.html";
+                    }
+                },
             },
 
             "/register": {
-                target: "http://127.0.0.1:5000",
+                target: "http://127.0.0.1:5001",
                 changeOrigin: true,
                 secure: false,
+                bypass: (req) => {
+                    if (req.method === "GET" && req.headers.accept?.includes("text/html")) {
+                        return "/index.html";
+                    }
+                },
             },
 
             "/session": {
-                target: "http://127.0.0.1:5000",
+                target: "http://127.0.0.1:5001",
                 changeOrigin: true,
                 secure: false,
             },
 
             "/logout": {
-                target: "http://127.0.0.1:5000",
+                target: "http://127.0.0.1:5001",
                 changeOrigin: true,
                 secure: false,
             },
 
             "/debug-session": {
-                target: "http://127.0.0.1:5000",
+                target: "http://127.0.0.1:5001",
+                changeOrigin: true,
+                secure: false,
+            },
+
+            "/rbi": {
+                target: "http://127.0.0.1:5001",
                 changeOrigin: true,
                 secure: false,
             },

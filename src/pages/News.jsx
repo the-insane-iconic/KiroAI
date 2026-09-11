@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
-const BASE_IP = "http://127.0.0.1:5000";
-const BASE_LOCAL = "http://localhost:5000";
+const BASE_IP = import.meta.env.VITE_API_URL || "http://127.0.0.1:5001";
+const BASE_LOCAL = "http://localhost:5001";
 
 async function apiCall(path, options = {}) {
   const urls = [path, `${BASE_IP}${path}`, `${BASE_LOCAL}${path}`];
@@ -21,7 +21,7 @@ async function apiCall(path, options = {}) {
   throw new Error(attempts.join("  |  "));
 }
 
-const card = { background: "#161a1f", border: "1px solid #242b35", borderRadius: "14px", padding: "22px" };
+const card = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "14px", padding: "22px", transition: "all 0.28s ease" };
 
 function timeAgo(pubDate) {
   if (!pubDate) return "";
@@ -54,46 +54,46 @@ export default function News() {
   useEffect(() => { load(); }, []);
 
   return (
-    <div style={{ color: "#fff" }}>
+    <div style={{ color: "var(--text)" }}>
       <div style={{ marginBottom: "26px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: "28px", fontWeight: "700" }}>News</h1>
-          <p style={{ margin: "4px 0 0 0", color: "#9ca3af", fontSize: "14px" }}>Real headlines, personalized to your goals and loan interests.</p>
+          <h1 style={{ margin: 0, fontSize: "28px", fontWeight: "700", color: "var(--text-h)" }}>News</h1>
+          <p style={{ margin: "4px 0 0 0", color: "var(--muted)", fontSize: "14px" }}>Real headlines, personalized to your goals and loan interests.</p>
         </div>
-        <button onClick={load} style={{ background: "none", border: "1px solid #242b35", color: "#9ca3af", padding: "8px 16px", borderRadius: "8px", fontSize: "12px", cursor: "pointer" }}>🔄 Refresh</button>
+        <button onClick={load} style={{ background: "var(--surface-soft)", border: "1px solid var(--border)", color: "var(--text-h)", padding: "8px 16px", borderRadius: "8px", fontSize: "12px", cursor: "pointer" }}>🔄 Refresh</button>
       </div>
 
-      {loading && <div style={{ color: "#9ca3af" }}>Fetching latest headlines…</div>}
+      {loading && <div style={{ color: "var(--muted)" }}>Fetching latest headlines…</div>}
 
       {!loading && error && (
-        <div style={{ background: "#161a1f", border: "1px solid #EF4444", borderRadius: "12px", padding: "18px" }}>
+        <div style={{ background: "var(--surface)", border: "1px solid #EF4444", borderRadius: "12px", padding: "18px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ color: "#FCA5A5", fontWeight: "700" }}>⚠️ Something went wrong</span>
-            <button onClick={load} style={{ background: "none", border: "1px solid #EF4444", color: "#FCA5A5", padding: "8px 16px", borderRadius: "6px", cursor: "pointer" }}>Retry</button>
+            <span style={{ color: "#EF4444", fontWeight: "700" }}>⚠️ Something went wrong</span>
+            <button onClick={load} style={{ background: "none", border: "1px solid #EF4444", color: "#EF4444", padding: "8px 16px", borderRadius: "6px", cursor: "pointer" }}>Retry</button>
           </div>
-          <div style={{ marginTop: "10px", fontFamily: "monospace", fontSize: "12px", color: "#FCA5A5", opacity: 0.85 }}>
+          <div style={{ marginTop: "10px", fontFamily: "monospace", fontSize: "12px", color: "#EF4444", opacity: 0.85 }}>
             {error.split("  |  ").map((line, i) => <div key={i}>{line}</div>)}
           </div>
         </div>
       )}
 
       {!loading && !error && sections && Object.keys(sections).length === 0 && (
-        <div style={{ ...card, textAlign: "center", color: "#9ca3af" }}>No headlines available right now — try refreshing in a bit.</div>
+        <div style={{ ...card, textAlign: "center", color: "var(--muted)" }}>No headlines available right now — try refreshing in a bit.</div>
       )}
 
       {!loading && !error && sections && Object.entries(sections).map(([title, items]) => (
         <div key={title} style={{ ...card, marginBottom: "18px" }}>
-          <h3 style={{ color: "#fff", marginTop: 0, marginBottom: "14px" }}>{title}</h3>
+          <h3 style={{ color: "var(--text-h)", marginTop: 0, marginBottom: "14px" }}>{title}</h3>
           {items.map((item, i) => (
             <a
               key={i}
               href={item.link}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ display: "block", padding: "10px 0", borderBottom: i < items.length - 1 ? "1px solid #1f262e" : "none", textDecoration: "none" }}
+              style={{ display: "block", padding: "12px 0", borderBottom: i < items.length - 1 ? "1px solid var(--border)" : "none", textDecoration: "none" }}
             >
-              <div style={{ color: "#CBD5E1", fontSize: "13px", lineHeight: "1.5", marginBottom: "4px" }}>{item.title}</div>
-              <div style={{ color: "#6b7280", fontSize: "11px" }}>{item.source} · {timeAgo(item.published)}</div>
+              <div style={{ color: "var(--text-h)", fontSize: "14px", lineHeight: "1.5", marginBottom: "4px", fontWeight: "500" }}>{item.title}</div>
+              <div style={{ color: "var(--muted)", fontSize: "12px" }}>{item.source} · {timeAgo(item.published)}</div>
             </a>
           ))}
         </div>

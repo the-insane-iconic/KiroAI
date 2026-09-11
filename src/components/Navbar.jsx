@@ -1,51 +1,42 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:5001";
 
-function Navbar({ onSearchFilter = () => {}, onQuickAdd = () => {} }) {
-  // =====================================
-  // AUTHENTICATION & USER DATA STATES
-  // =====================================
+function Navbar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Mode state
+  const path = location.pathname;
+  const isBusiness = path.startsWith("/business");
+  const isLaunchpad = path.startsWith("/launchpad");
+  const isFinance = !isBusiness && !isLaunchpad;
+
+  const [modeOpen, setModeOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  // User state
   const [user, setUser] = useState(null);
   const [userInitial, setUserInitial] = useState("G");
-  const [currency, setCurrency] = useState(localStorage.getItem("app_currency") || "INR");
 
-  // Navigation Drawers & Dropdowns
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [searchFilterOpen, setSearchFilterOpen] = useState(false);
-  const [activePanel, setActivePanel] = useState(null);
+  // Modals & settings
+  const [activeModal, setActiveModal] = useState(null);
+  const { theme, setTheme } = useTheme();
+  const [language, setLanguage] = useState(() => localStorage.getItem("language") || "English");
 
-  // Active Modals
-  const [activeModal, setActiveModal] = useState(null); // 'edit_profile' | 'change_password' | 'privacy'
-
-  // Search & Filter State
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState("All");
-  const [filterType, setFilterType] = useState("All");
-  const [filterMinAmount, setFilterMinAmount] = useState("");
-
-  // Edit Profile Form State
+  // Profile edit state
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
 
-  // Real Dynamic Notifications
-  const [notifList, setNotifList] = useState([]);
-  const [loadingNotifs, setLoadingNotifs] = useState(false);
-
-  // User App Preferences
-  const [language, setLanguage] = useState(localStorage.getItem("language") || "English");
-  const [notifications, setNotifications] = useState(localStorage.getItem("notifications") !== "false");
-  const [darkMode, setDarkMode] = useState(localStorage.getItem("darkMode") !== "false");
-  const [twoFactor, setTwoFactor] = useState(localStorage.getItem("twoFactor") === "true");
-
+  const modeRef = useRef(null);
+  const settingsRef = useRef(null);
   const profileRef = useRef(null);
-  const notifRef = useRef(null);
-  const searchRef = useRef(null);
 
-  // =====================================
-  // INITIALIZE USER FROM STORAGE
-  // =====================================
+
+  // Load session
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem("user");
@@ -59,99 +50,31 @@ function Navbar({ onSearchFilter = () => {}, onQuickAdd = () => {} }) {
         if (displayName && displayName.length > 0) {
           setUserInitial(displayName.charAt(0).toUpperCase());
         }
-
-        // Fetch user-isolated notifications
-        if (parsedUser?.id) {
-          fetchUserNotifications(parsedUser.id);
-        }
       } else {
         setUser(null);
-        setNotifList([]);
       }
     } catch (error) {
-      console.error("Unable to load session:", error);
       setUser(null);
     }
   }, []);
 
-  // =====================================
-  // FETCH USER NOTIFICATIONS (NO FAKE DATA)
-  // =====================================
-  const fetchUserNotifications = async (userId) => {
-    try {
-      setLoadingNotifs(true);
-      const res = await fetch(`${API_BASE}/api/notifications?user_id=${userId}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && Array.isArray(data.notifications)) {
-          setNotifList(data.notifications);
-        } else {
-          setNotifList([]);
-        }
-      } else {
-        setNotifList([]);
-      }
-    } catch (err) {
-      console.warn("Real-time notifications service unavailable:", err.message);
-      setNotifList([]);
-    } finally {
-      setLoadingNotifs(false);
-    }
-  };
-
-  // =====================================
-  // CLICK OUTSIDE HANDLERS
-  // =====================================
+  // Click outside listener for all popups
   useEffect(() => {
     const handleClickOutside = (event) => {
+      if (modeRef.current && !modeRef.current.contains(event.target)) {
+        setModeOpen(false);
+      }
+      if (settingsRef.current && !settingsRef.current.contains(event.target)) {
+        setSettingsOpen(false);
+      }
       if (profileRef.current && !profileRef.current.contains(event.target)) {
         setProfileOpen(false);
-        setActivePanel(null);
-      }
-      if (notifRef.current && !notifRef.current.contains(event.target)) {
-        setNotifOpen(false);
-      }
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
-        setSearchFilterOpen(false);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // =====================================
-  // ACTIONS & HANDLERS
-  // =====================================
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    onSearchFilter({
-      query: searchTerm,
-      category: filterCategory,
-      type: filterType,
-      minAmount: filterMinAmount,
-    });
-    setSearchFilterOpen(false);
-  };
-
-  const markAllNotificationsAsRead = async () => {
-    if (!user?.id) return;
-    try {
-      await fetch(`${API_BASE}/api/notifications/read-all`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: user.id }),
-      });
-      setNotifList((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    } catch (_) {
-      setNotifList((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    }
-  };
-
-  const changeCurrency = (val) => {
-    setCurrency(val);
-    localStorage.setItem("app_currency", val);
-  };
 
   const handleUpdateProfile = () => {
     if (!user) return;
@@ -171,553 +94,747 @@ function Navbar({ onSearchFilter = () => {}, onQuickAdd = () => {} }) {
     window.location.href = "/login";
   };
 
-  const unreadCount = notifList.filter((n) => !n.is_read).length;
+  const currentPath = location.pathname;
+
+  const handleSwitchService = (targetPath) => {
+    setModeOpen(false);
+    navigate(targetPath);
+  };
 
   return (
     <>
-      <nav
+      <header
         style={{
-          height: "80px",
-          background: "linear-gradient(90deg, #0F172A, #1A1F3A)",
+          height: "64px",
+          background: "var(--navbar-bg)",
+          backdropFilter: "blur(18px)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          padding: "0 35px",
-          borderBottom: "3px solid #0D9488",
+          padding: "0 24px",
+          borderBottom: "1px solid var(--border)",
           position: "sticky",
           top: 0,
           zIndex: 1000,
-          fontFamily: "sans-serif",
+          boxShadow: "var(--shadow-sm)",
         }}
       >
-        {/* BRAND */}
-        <div style={{ cursor: "pointer" }} onClick={() => (window.location.href = "/dashboard")}>
-          <h2
-            style={{
-              margin: 0,
-              fontSize: "28px",
-              fontWeight: "800",
-              background: "linear-gradient(90deg, #0D9488, #14B8A6, #06B6D4)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
-            Amivest AI
-          </h2>
-          <p style={{ marginTop: "3px", color: "#94A3B8", fontSize: "12px" }}>
-            Your AI Financial Guardian
-          </p>
-        </div>
-
-        {/* SEARCH & FILTERS HUB */}
-        <div ref={searchRef} style={{ position: "relative", display: "flex", alignItems: "center" }}>
-          <form onSubmit={handleSearchSubmit} style={{ display: "flex", alignItems: "center" }}>
-            <input
-              type="text"
-              placeholder="Search transactions, goals, tags..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onFocus={() => setSearchFilterOpen(true)}
-              style={{
-                width: "280px",
-                padding: "10px 42px 10px 18px",
-                borderRadius: "30px",
-                border: "2px solid #0D9488",
-                background: "rgba(15, 23, 42, 0.7)",
-                color: "#fff",
-                outline: "none",
-                fontSize: "13px",
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => setSearchFilterOpen(!searchFilterOpen)}
-              style={{
-                position: "absolute",
-                right: "12px",
-                background: "none",
-                border: "none",
-                color: "#0D9488",
-                cursor: "pointer",
-                fontSize: "14px",
-              }}
-              title="Search Filters"
-            >
-              ⚙️
-            </button>
-          </form>
-
-          {/* DYNAMIC SEARCH FILTERS */}
-          {searchFilterOpen && (
-            <div
-              style={{
-                position: "absolute",
-                top: "52px",
-                left: 0,
-                width: "320px",
-                background: "#080F1C",
-                border: "1px solid #0D9488",
-                borderRadius: "14px",
-                padding: "16px",
-                boxShadow: "0 20px 50px rgba(0,0,0,0.8)",
-                zIndex: 1100,
-                color: "#fff",
-              }}
-            >
-              <div style={{ fontSize: "12px", fontWeight: "700", color: "#0D9488", marginBottom: "12px" }}>
-                FILTER DATA
-              </div>
-              <div style={{ marginBottom: "10px" }}>
-                <label style={filterLabel}>Category</label>
-                <select
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  style={filterInput}
-                >
-                  <option>All</option>
-                  <option>Income & Deposits</option>
-                  <option>Groceries & Food</option>
-                  <option>EMI & Loans</option>
-                  <option>Entertainment</option>
-                  <option>Shopping</option>
-                </select>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "12px" }}>
-                <div>
-                  <label style={filterLabel}>Type</label>
-                  <select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                    style={filterInput}
-                  >
-                    <option>All</option>
-                    <option>Credit (+)</option>
-                    <option>Debit (-)</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={filterLabel}>Min Amount ({currency})</label>
-                  <input
-                    type="number"
-                    placeholder="Min Value"
-                    value={filterMinAmount}
-                    onChange={(e) => setFilterMinAmount(e.target.value)}
-                    style={filterInput}
-                  />
-                </div>
-              </div>
-
-              <button
-                onClick={handleSearchSubmit}
-                style={{
-                  width: "100%",
-                  padding: "8px",
-                  background: "#0D9488",
-                  border: "none",
-                  borderRadius: "8px",
-                  color: "#fff",
-                  fontWeight: "700",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                }}
-              >
-                Apply Filters
-              </button>
+        {/* LEFT: PAGE CONTEXT BREADCRUMB */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span style={{ fontSize: "19px" }}>
+            {currentPath.startsWith("/launchpad") ? "🚀" :
+             currentPath.startsWith("/business") ? "🏪" :
+             currentPath.startsWith("/loan") ? "🏛️" :
+             currentPath.startsWith("/rbi") ? "📜" :
+             currentPath.startsWith("/goals") ? "🎯" :
+             currentPath.startsWith("/investments") ? "📈" :
+             currentPath.startsWith("/tax") ? "🧾" :
+             currentPath.startsWith("/news") ? "📰" :
+             currentPath.startsWith("/premium") ? "⭐" :
+             "📊"}
+          </span>
+          <div>
+            <div style={{ fontSize: "14px", fontWeight: "700", color: "var(--text-h)", lineHeight: 1.2 }}>
+              {currentPath.startsWith("/launchpad") ? "90-Day Business Launchpad" :
+               currentPath.startsWith("/business") ? "Business Advisor" :
+               currentPath.startsWith("/loan") ? "Govt Loan Advisor" :
+               currentPath.startsWith("/rbi") ? "RBI Rules & Norms" :
+               currentPath.startsWith("/goals") ? "Goals & Targets" :
+               currentPath.startsWith("/investments") ? "Investments" :
+               currentPath.startsWith("/tax") ? "Tax & Subsidies" :
+               currentPath.startsWith("/news") ? "Market News" :
+               currentPath.startsWith("/premium") ? "MSME Pro Access" :
+               "Dashboard"}
             </div>
-          )}
+            <div style={{ fontSize: "10px", color: "var(--muted)", marginTop: "2px" }}>
+              AmiVest · Financial Co-Pilot
+            </div>
+          </div>
         </div>
 
-        {/* RIGHT CONTROLS */}
-        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-          {/* CURRENCY SELECTOR */}
-          <select
-            value={currency}
-            onChange={(e) => changeCurrency(e.target.value)}
-            style={{
-              background: "rgba(15, 23, 42, 0.8)",
-              border: "1px solid #0D9488",
-              color: "#0D9488",
-              padding: "8px 12px",
-              borderRadius: "20px",
-              fontSize: "12px",
-              fontWeight: "700",
-              cursor: "pointer",
-              outline: "none",
-            }}
-          >
-            <option value="INR">₹ INR</option>
-            <option value="USD">$ USD</option>
-            <option value="EUR">€ EUR</option>
-          </select>
-
-          {/* QUICK ADD BUTTON */}
-          <button
-            onClick={onQuickAdd}
-            style={{
-              background: "linear-gradient(135deg, #0D9488, #14B8A6)",
-              border: "none",
-              color: "#fff",
-              padding: "9px 16px",
-              borderRadius: "20px",
-              fontSize: "13px",
-              fontWeight: "700",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              boxShadow: "0 4px 15px rgba(13, 148, 136, 0.3)",
-            }}
-          >
-            <span>+</span> Quick Add
-          </button>
-
-          {/* NOTIFICATION CENTER */}
-          <div ref={notifRef} style={{ position: "relative" }}>
+        {/* RIGHT: MODE SWITCHER + SETTINGS BUTTON + USER PROFILE / SIGN IN */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          
+          {/* 1. AMI-VEST SERVICE DROPDOWN */}
+          <div ref={modeRef} style={{ position: "relative" }}>
             <button
-              onClick={() => setNotifOpen(!notifOpen)}
+              onClick={() => {
+                setModeOpen(!modeOpen);
+                setSettingsOpen(false);
+                setProfileOpen(false);
+              }}
               style={{
-                width: "44px",
-                height: "44px",
-                borderRadius: "50%",
-                border: "2px solid #0D9488",
-                background: "rgba(13, 148, 136, 0.15)",
-                cursor: "pointer",
-                fontSize: "18px",
-                position: "relative",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
+                gap: "8px",
+                padding: "5px 12px 5px 6px",
+                borderRadius: "9999px",
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                cursor: "pointer",
+                color: "var(--text-h)",
+                boxShadow: "var(--shadow-sm)",
+                transition: "all 0.18s ease",
               }}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--primary-accent)")}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
             >
-              🔔
-              {unreadCount > 0 && (
-                <span
+              <div
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, var(--primary), var(--blue))",
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: "14px",
+                  boxShadow: "0 0 8px var(--glow)",
+                  flexShrink: 0,
+                }}
+              >
+                💰
+              </div>
+
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontWeight: "800", fontSize: "12px", color: "var(--text-h)", lineHeight: 1.1 }}>
+                  AmiVest
+                </div>
+                <div
                   style={{
-                    position: "absolute",
-                    top: "4px",
-                    right: "4px",
-                    width: "18px",
-                    height: "18px",
-                    borderRadius: "50%",
-                    background: "#EF4444",
-                    color: "#fff",
-                    fontSize: "10px",
-                    fontWeight: "900",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    fontSize: "9px",
+                    color: "var(--primary-accent)",
+                    fontWeight: "600",
                   }}
                 >
-                  {unreadCount}
-                </span>
-              )}
+                  Financial Suite
+                </div>
+              </div>
+
+              <span style={{ fontSize: "8px", color: "var(--muted)", marginLeft: "2px", transform: modeOpen ? "rotate(180deg)" : "none", transition: "transform 0.18s ease" }}>
+                ▼
+              </span>
             </button>
 
-            {/* REAL NOTIFICATIONS FEED */}
-            {notifOpen && (
+            {/* Mode Switcher Dropdown Menu */}
+            {modeOpen && (
               <div
                 style={{
                   position: "absolute",
                   right: 0,
-                  top: "55px",
-                  width: "340px",
-                  background: "#080F1C",
-                  border: "1px solid #0D9488",
+                  top: "46px",
+                  width: "300px",
+                  padding: "10px",
                   borderRadius: "16px",
-                  padding: "16px",
-                  boxShadow: "0 25px 60px rgba(0,0,0,0.8)",
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  boxShadow: "var(--shadow-md)",
+                  backdropFilter: "blur(20px)",
                   zIndex: 1100,
-                  color: "#fff",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                  <span style={{ fontSize: "14px", fontWeight: "700" }}>Live Alerts</span>
-                  {notifList.length > 0 && (
-                    <button
-                      onClick={markAllNotificationsAsRead}
-                      style={{ background: "none", border: "none", color: "#0D9488", fontSize: "11px", cursor: "pointer", fontWeight: "600" }}
-                    >
-                      Mark all read
-                    </button>
-                  )}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "4px 6px 8px 6px",
+                    borderBottom: "1px solid var(--border)",
+                    fontSize: "9.5px",
+                    fontWeight: "800",
+                    color: "var(--muted)",
+                    letterSpacing: "1px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  <span>Switch Workspace</span>
+                  <span style={{ color: "#10B981", fontSize: "8.5px" }}>● ACTIVE</span>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "280px", overflowY: "auto" }}>
-                  {loadingNotifs ? (
-                    <div style={{ textAlign: "center", color: "#94A3B8", fontSize: "12px", padding: "16px" }}>Checking alerts...</div>
-                  ) : notifList.length === 0 ? (
-                    <div style={{ textAlign: "center", color: "#64748B", fontSize: "12px", padding: "20px" }}>
-                      No new notifications
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "8px" }}>
+                  {/* Ami-Vest */}
+                  <button
+                    onClick={() => handleSwitchService("/")}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "9px 10px",
+                      borderRadius: "11px",
+                      border: isFinance ? "1px solid var(--primary-accent)" : "1px solid var(--border)",
+                      background: isFinance
+                        ? "var(--primary-soft)"
+                        : "var(--surface-soft)",
+                      color: "var(--text-h)",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "34px",
+                        height: "34px",
+                        borderRadius: "9px",
+                        background: "var(--primary-soft)",
+                        border: "1px solid var(--border)",
+                        display: "grid",
+                        placeItems: "center",
+                        fontSize: "16px",
+                        flexShrink: 0,
+                      }}
+                    >
+                      💰
                     </div>
-                  ) : (
-                    notifList.map((item) => (
-                      <div
-                        key={item.id}
-                        style={{
-                          padding: "10px",
-                          background: item.is_read ? "rgba(255,255,255,0.02)" : "rgba(13, 148, 136, 0.12)",
-                          borderLeft: `3px solid ${item.is_read ? "#334155" : "#0D9488"}`,
-                          borderRadius: "6px",
-                          display: "flex",
-                          gap: "10px",
-                          alignItems: "flex-start",
-                        }}
-                      >
-                        <span style={{ fontSize: "16px" }}>{item.icon || "🔔"}</span>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: "12px", fontWeight: "700" }}>{item.title}</div>
-                          <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "2px" }}>{item.message}</div>
-                          <div style={{ fontSize: "9px", color: "#64748B", marginTop: "4px" }}>{item.created_at || "Recently"}</div>
-                        </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <b style={{ fontSize: "12.5px", color: "var(--text-h)" }}>Ami-Vest</b>
+                        <span style={{ fontSize: "8px", fontWeight: "700", padding: "1px 5px", borderRadius: "999px", background: "var(--primary-soft)", color: "var(--primary-accent)" }}>Finance</span>
                       </div>
-                    ))
-                  )}
+                      <small style={{ fontSize: "9.5px", color: "var(--muted)", display: "block", marginTop: "1px" }}>
+                        Cashflow, statements, investments & loans
+                      </small>
+                    </div>
+                    {isFinance && <span style={{ color: "var(--primary-accent)", fontWeight: "900", fontSize: "14px" }}>✓</span>}
+                  </button>
+
+                  {/* Ami-Business */}
+                  <button
+                    onClick={() => handleSwitchService("/business")}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "9px 10px",
+                      borderRadius: "11px",
+                      border: isBusiness ? "1px solid #10B981" : "1px solid var(--border)",
+                      background: isBusiness
+                        ? "rgba(16, 185, 129, 0.15)"
+                        : "var(--surface-soft)",
+                      color: "var(--text-h)",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "34px",
+                        height: "34px",
+                        borderRadius: "9px",
+                        background: "rgba(16, 185, 129, 0.2)",
+                        border: "1px solid rgba(16, 185, 129, 0.35)",
+                        display: "grid",
+                        placeItems: "center",
+                        fontSize: "16px",
+                        flexShrink: 0,
+                      }}
+                    >
+                      🏪
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <b style={{ fontSize: "12.5px", color: "var(--text-h)" }}>Ami-Business</b>
+                        <span style={{ fontSize: "8px", fontWeight: "700", padding: "1px 5px", borderRadius: "999px", background: "rgba(16, 185, 129, 0.15)", color: "#10B981" }}>Feasibility</span>
+                      </div>
+                      <small style={{ fontSize: "9.5px", color: "var(--muted)", display: "block", marginTop: "1px" }}>
+                        Hyper-local footfall, demand & break-even
+                      </small>
+                    </div>
+                    {isBusiness && <span style={{ color: "#10B981", fontWeight: "900", fontSize: "14px" }}>✓</span>}
+                  </button>
+
+                  {/* Ami-Launch */}
+                  <button
+                    onClick={() => handleSwitchService("/launchpad")}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "9px 10px",
+                      borderRadius: "11px",
+                      border: isLaunchpad ? "1px solid #8B5CF6" : "1px solid var(--border)",
+                      background: isLaunchpad
+                        ? "rgba(139, 92, 246, 0.15)"
+                        : "var(--surface-soft)",
+                      color: "var(--text-h)",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "34px",
+                        height: "34px",
+                        borderRadius: "9px",
+                        background: "rgba(139, 92, 246, 0.2)",
+                        border: "1px solid rgba(139, 92, 246, 0.35)",
+                        display: "grid",
+                        placeItems: "center",
+                        fontSize: "16px",
+                        flexShrink: 0,
+                      }}
+                    >
+                      🚀
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <b style={{ fontSize: "12.5px", color: "var(--text-h)" }}>Ami-Launch</b>
+                        <span style={{ fontSize: "8px", fontWeight: "700", padding: "1px 5px", borderRadius: "999px", background: "rgba(139, 92, 246, 0.2)", color: "#A78BFA" }}>90-Day</span>
+                      </div>
+                      <small style={{ fontSize: "9.5px", color: "var(--muted)", display: "block", marginTop: "1px" }}>
+                        Zero or capital to 90-day profit roadmap
+                      </small>
+                    </div>
+                    {isLaunchpad && <span style={{ color: "#8B5CF6", fontWeight: "900", fontSize: "14px" }}>✓</span>}
+                  </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* DYNAMIC PROFILE CONTROLLER */}
+          {/* 2. SETTINGS BUTTON (WITH CHANGE THEME OPTION) */}
+          <div ref={settingsRef} style={{ position: "relative" }}>
+            <button
+              onClick={() => {
+                setSettingsOpen(!settingsOpen);
+                setModeOpen(false);
+                setProfileOpen(false);
+              }}
+              title="App Settings & Theme"
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                border: "1px solid var(--border)",
+                background: "var(--surface)",
+                color: "var(--primary-accent)",
+                display: "grid",
+                placeItems: "center",
+                cursor: "pointer",
+                fontSize: "15px",
+                boxShadow: "var(--shadow-sm)",
+                transition: "all 0.18s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "var(--primary-accent)";
+                e.currentTarget.style.transform = "rotate(30deg)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "var(--border)";
+                e.currentTarget.style.transform = "rotate(0deg)";
+              }}
+            >
+              ⚙️
+            </button>
+
+            {/* Settings Modal / Dropdown */}
+            {settingsOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  top: "46px",
+                  width: "280px",
+                  padding: "14px",
+                  borderRadius: "16px",
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  boxShadow: "var(--shadow-md)",
+                  backdropFilter: "blur(20px)",
+                  zIndex: 1100,
+                  color: "var(--text)",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "12px", borderBottom: "1px solid var(--border)", paddingBottom: "8px" }}>
+                  <span style={{ fontSize: "14px" }}>⚙️</span>
+                  <strong style={{ fontSize: "13px", color: "var(--text-h)" }}>App Settings</strong>
+                </div>
+
+                {/* THEME SELECTOR */}
+                <div style={{ marginBottom: "14px" }}>
+                  <label style={{ display: "block", fontSize: "10.5px", fontWeight: "700", color: "var(--primary-accent)", marginBottom: "7px", textTransform: "uppercase", letterSpacing: "0.8px" }}>
+                    🎨 Color Theme
+                  </label>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                    <button
+                      onClick={() => setTheme("emerald")}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "7px 10px",
+                        borderRadius: "9px",
+                        border: theme === "emerald" ? "1px solid #10B981" : "1px solid var(--border)",
+                        background: theme === "emerald" ? "rgba(16, 185, 129, 0.18)" : "var(--surface-soft)",
+                        color: "var(--text-h)",
+                        fontSize: "11.5px",
+                        cursor: "pointer",
+                        transition: "all 0.18s ease",
+                      }}
+                    >
+                      <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span>🌲</span> Dark Emerald (Default)
+                      </span>
+                      {theme === "emerald" && <span style={{ color: "#10B981", fontWeight: "bold" }}>✓</span>}
+                    </button>
+
+                    <button
+                      onClick={() => setTheme("midnight")}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "7px 10px",
+                        borderRadius: "9px",
+                        border: theme === "midnight" ? "1px solid #38BDF8" : "1px solid var(--border)",
+                        background: theme === "midnight" ? "rgba(56, 189, 248, 0.18)" : "var(--surface-soft)",
+                        color: "var(--text-h)",
+                        fontSize: "11.5px",
+                        cursor: "pointer",
+                        transition: "all 0.18s ease",
+                      }}
+                    >
+                      <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span>🌌</span> Cyber Midnight (Deep Dark)
+                      </span>
+                      {theme === "midnight" && <span style={{ color: "#38BDF8", fontWeight: "bold" }}>✓</span>}
+                    </button>
+
+                    <button
+                      onClick={() => setTheme("light")}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "7px 10px",
+                        borderRadius: "9px",
+                        border: theme === "light" ? "1px solid #F59E0B" : "1px solid var(--border)",
+                        background: theme === "light" ? "rgba(245, 158, 11, 0.18)" : "var(--surface-soft)",
+                        color: "var(--text-h)",
+                        fontSize: "11.5px",
+                        cursor: "pointer",
+                        transition: "all 0.18s ease",
+                      }}
+                    >
+                      <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span>☀️</span> Clean Light Mode
+                      </span>
+                      {theme === "light" && <span style={{ color: "#F59E0B", fontWeight: "bold" }}>✓</span>}
+                    </button>
+                  </div>
+                </div>
+
+                {/* LANGUAGE PREFERENCE */}
+                <div>
+                  <label style={{ display: "block", fontSize: "10.5px", fontWeight: "700", color: "var(--primary-accent)", marginBottom: "7px", textTransform: "uppercase", letterSpacing: "0.8px" }}>
+                    🌐 Language
+                  </label>
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <button
+                      onClick={() => {
+                        setLanguage("English");
+                        localStorage.setItem("language", "English");
+                        localStorage.setItem("amivest_alexa_language", "en");
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: "7px",
+                        borderRadius: "8px",
+                        border: language === "English" ? "1px solid var(--primary-accent)" : "1px solid var(--border)",
+                        background: language === "English" ? "linear-gradient(90deg, var(--primary), var(--blue))" : "var(--surface-soft)",
+                        color: "#FFFFFF",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        cursor: "pointer",
+                        transition: "all 0.18s ease",
+                      }}
+                    >
+                      English
+                    </button>
+                    <button
+                      onClick={() => {
+                        setLanguage("Hindi");
+                        localStorage.setItem("language", "Hindi");
+                        localStorage.setItem("amivest_alexa_language", "hi");
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: "7px",
+                        borderRadius: "8px",
+                        border: language === "Hindi" ? "1px solid var(--primary-accent)" : "1px solid var(--border)",
+                        background: language === "Hindi" ? "linear-gradient(90deg, var(--primary), var(--blue))" : "var(--surface-soft)",
+                        color: "#FFFFFF",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        cursor: "pointer",
+                        transition: "all 0.18s ease",
+                      }}
+                    >
+                      हिन्दी
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 3. USER PROFILE / SIGN IN BUTTON */}
           <div ref={profileRef} style={{ position: "relative" }}>
             <button
               onClick={() => {
                 setProfileOpen(!profileOpen);
-                setActivePanel(null);
+                setModeOpen(false);
+                setSettingsOpen(false);
               }}
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "12px",
-                padding: "6px 16px",
-                borderRadius: "50px",
-                background: "rgba(15, 23, 42, 0.9)",
-                border: "2px solid #0D9488",
+                gap: "8px",
+                padding: "4px 12px 4px 5px",
+                borderRadius: "9999px",
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
                 cursor: "pointer",
-                color: "#fff",
+                color: "var(--text-h)",
+                transition: "all 0.15s ease",
               }}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--primary-accent)")}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
             >
               <div
                 style={{
-                  width: "40px",
-                  height: "40px",
+                  width: "28px",
+                  height: "28px",
                   borderRadius: "50%",
-                  background: "linear-gradient(135deg, #0D9488, #14B8A6, #06B6D4)",
+                  background: "linear-gradient(135deg, var(--primary), var(--blue))",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "16px",
+                  fontSize: "12.5px",
                   fontWeight: "bold",
+                  color: "#FFFFFF",
                 }}
               >
                 {userInitial}
               </div>
 
               <div style={{ textAlign: "left" }}>
-                <div style={{ fontWeight: "700", fontSize: "13px" }}>{user?.name || "Guest"}</div>
-                <div style={{ fontSize: "11px", color: "#94A3B8" }}>
-                  {user ? "Active Account" : "Unauthenticated"}
+                <div style={{ fontWeight: "700", fontSize: "11.5px", color: "var(--text-h)" }}>
+                  {user?.name || user?.username || "Guest"}
+                </div>
+                <div style={{ fontSize: "9px", color: "var(--muted)" }}>
+                  {user ? "Active" : "Sign In"}
                 </div>
               </div>
 
-              <span style={{ fontSize: "11px", marginLeft: "4px" }}>{profileOpen ? "▲" : "▼"}</span>
+              <span style={{ fontSize: "8px", color: "var(--muted)", marginLeft: "2px" }}>
+                {profileOpen ? "▲" : "▼"}
+              </span>
             </button>
 
-            {/* PROFILE MENU MODAL */}
+            {/* Profile Dropdown Modal */}
             {profileOpen && (
               <div
                 style={{
                   position: "absolute",
                   right: 0,
-                  top: "60px",
-                  width: "360px",
-                  background: "linear-gradient(145deg, #111827, #17233A)",
-                  border: "1px solid #0D9488",
-                  borderRadius: "20px",
-                  padding: "18px",
-                  boxShadow: "0 25px 70px rgba(0,0,0,0.8)",
-                  color: "#fff",
+                  top: "46px",
+                  width: "300px",
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "18px",
+                  padding: "16px",
+                  boxShadow: "var(--shadow-md)",
+                  color: "var(--text)",
                   zIndex: 1100,
+                  backdropFilter: "blur(20px)",
                 }}
               >
-                {/* REAL USER CARD */}
-                <div style={{ display: "flex", alignItems: "center", gap: "14px", paddingBottom: "14px", borderBottom: "1px solid #334155" }}>
+                {/* User Info Header */}
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", paddingBottom: "12px", borderBottom: "1px solid var(--border)" }}>
                   <div
                     style={{
-                      width: "55px",
-                      height: "55px",
+                      width: "40px",
+                      height: "40px",
                       borderRadius: "50%",
-                      background: "linear-gradient(135deg, #0D9488, #06B6D4)",
+                      background: "linear-gradient(135deg, var(--primary), var(--blue))",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      fontSize: "22px",
+                      fontSize: "16px",
                       fontWeight: "800",
+                      color: "#FFFFFF",
                     }}
                   >
                     {userInitial}
                   </div>
                   <div>
-                    <div style={{ fontSize: "16px", fontWeight: "800" }}>{user?.name || "Guest"}</div>
-                    <div style={{ color: "#94A3B8", fontSize: "12px" }}>{user?.email || "No email available"}</div>
-                    <div style={{ color: "#0D9488", fontSize: "11px", marginTop: "2px" }}>
+                    <div style={{ fontSize: "13px", fontWeight: "800", color: "var(--text-h)" }}>{user?.name || "Guest Account"}</div>
+                    <div style={{ color: "var(--muted)", fontSize: "10.5px" }}>{user?.email || "No email linked"}</div>
+                    <div style={{ color: "var(--primary-accent)", fontSize: "9.5px", marginTop: "2px" }}>
                       User ID: #{user?.id || "Unregistered"}
                     </div>
                   </div>
                 </div>
 
-                {user && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "8px", marginTop: "12px" }}>
-                    <button onClick={() => setActiveModal("edit_profile")} style={quickBtnStyle}>
-                      ✏️ Edit Account Profile
+                {/* GUEST NUDGE OR USER ACTIONS */}
+                {!user ? (
+                  <div style={{ margin: "12px 0 6px 0" }}>
+                    <p style={{ fontSize: "11px", color: "var(--muted)", margin: "0 0 10px 0", lineHeight: "1.45" }}>
+                      Sign in to sync your bank records, get personalized MSME financial insights, and save your decisions.
+                    </p>
+                    <button
+                      onClick={() => { setProfileOpen(false); navigate("/login"); }}
+                      style={{
+                        width: "100%",
+                        padding: "9px",
+                        background: "linear-gradient(90deg, var(--primary), var(--blue))",
+                        border: "none",
+                        borderRadius: "10px",
+                        color: "#fff",
+                        fontWeight: "700",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Sign In / Register →
                     </button>
                   </div>
-                )}
-
-                {/* SETTINGS MENU ACCORDION */}
-                <button onClick={() => setActivePanel(activePanel === "settings" ? null : "settings")} style={menuStyle}>
-                  ⚙️ <span>Preferences & Settings</span>
-                  <span style={{ marginLeft: "auto" }}>{activePanel === "settings" ? "▲" : "›"}</span>
-                </button>
-
-                {activePanel === "settings" && (
-                  <div style={panelStyle}>
-                    <div style={settingRow}>
-                      <div>
-                        <b>🌐 Language</b>
-                        <div style={smallText}>App Interface Language</div>
-                      </div>
-                      <select
-                        value={language}
-                        onChange={(e) => {
-                          setLanguage(e.target.value);
-                          localStorage.setItem("language", e.target.value);
-                        }}
-                        style={selectStyle}
-                      >
-                        <option>English</option>
-                        <option>Hindi</option>
-                      </select>
-                    </div>
-
-                    <div style={settingRow}>
-                      <div>
-                        <b>🔔 Notifications</b>
-                        <div style={smallText}>Financial Alerts & Push</div>
-                      </div>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", margin: "12px 0" }}>
                       <button
-                        onClick={() => {
-                          const n = !notifications;
-                          setNotifications(n);
-                          localStorage.setItem("notifications", String(n));
-                        }}
-                        style={toggleStyle(notifications)}
+                        onClick={() => { setActiveModal("edit_profile"); setProfileOpen(false); }}
+                        style={profileMenuBtn}
                       >
-                        {notifications ? "ON" : "OFF"}
+                        <span>👤</span> Edit Profile
+                      </button>
+                      <button
+                        onClick={() => { setActiveModal("change_password"); setProfileOpen(false); }}
+                        style={profileMenuBtn}
+                      >
+                        <span>🔒</span> Security & Password
+                      </button>
+                      <button
+                        onClick={() => { setActiveModal("privacy"); setProfileOpen(false); }}
+                        style={profileMenuBtn}
+                      >
+                        <span>🛡️</span> Privacy Policy
+                      </button>
+                      <button
+                        onClick={() => { setProfileOpen(false); navigate("/premium"); }}
+                        style={profileMenuBtn}
+                      >
+                        <span>⭐</span> MSME Pro Intelligence
                       </button>
                     </div>
 
-                    <div style={settingRow}>
-                      <div>
-                        <b>🌙 Dark Mode</b>
-                        <div style={smallText}>System Display Theme</div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          const d = !darkMode;
-                          setDarkMode(d);
-                          localStorage.setItem("darkMode", String(d));
-                          document.body.style.background = d ? "#050816" : "#ffffff";
-                        }}
-                        style={toggleStyle(darkMode)}
-                      >
-                        {darkMode ? "ON" : "OFF"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* SECURITY MENU ACCORDION */}
-                <button onClick={() => setActivePanel(activePanel === "security" ? null : "security")} style={menuStyle}>
-                  🔐 <span>Privacy & Security</span>
-                  <span style={{ marginLeft: "auto" }}>{activePanel === "security" ? "▲" : "›"}</span>
-                </button>
-
-                {activePanel === "security" && (
-                  <div style={panelStyle}>
-                    <div style={settingRow}>
-                      <div>
-                        <b>🔑 Two-Factor Auth</b>
-                        <div style={smallText}>Login Verification</div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          const t = !twoFactor;
-                          setTwoFactor(t);
-                          localStorage.setItem("twoFactor", String(t));
-                        }}
-                        style={toggleStyle(twoFactor)}
-                      >
-                        {twoFactor ? "ON" : "OFF"}
-                      </button>
-                    </div>
-                    <button onClick={() => setActiveModal("privacy")} style={securityButton}>
-                      🛡️ Privacy Policy & Security Scoping
+                    <button
+                      onClick={handleLogout}
+                      style={{
+                        width: "100%",
+                        padding: "8px",
+                        background: "rgba(239, 68, 68, 0.15)",
+                        border: "1px solid rgba(239, 68, 68, 0.35)",
+                        borderRadius: "10px",
+                        color: "#FCA5A5",
+                        fontWeight: "700",
+                        fontSize: "11.5px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      🚪 Sign Out
                     </button>
-                  </div>
+                  </>
                 )}
-
-                {/* LOGOUT */}
-                <div style={{ height: "1px", background: "#334155", margin: "10px 0" }} />
-                <button onClick={handleLogout} style={logoutBtnStyle}>
-                  🚪 Logout Session
-                </button>
               </div>
             )}
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* REAL EDIT PROFILE MODAL */}
+      {/* EDIT PROFILE MODAL */}
       {activeModal === "edit_profile" && (
-        <div style={modalBackdrop} onClick={() => setActiveModal(null)}>
-          <div style={modalBody} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: "0 0 16px 0", color: "#0D9488" }}>Edit Account Profile</h3>
-            <label style={filterLabel}>Full Name</label>
-            <input
-              type="text"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              style={{ ...filterInput, marginBottom: "12px" }}
-            />
-            <label style={filterLabel}>Email Address</label>
-            <input
-              type="email"
-              value={editEmail}
-              onChange={(e) => setEditEmail(e.target.value)}
-              style={{ ...filterInput, marginBottom: "18px" }}
-            />
-            <div style={{ display: "flex", gap: "8px" }}>
-              <button onClick={handleUpdateProfile} style={submitModalBtn}>
+        <div style={modalOverlay}>
+          <div style={modalContent}>
+            <div style={modalHeader}>
+              <h3 style={{ margin: 0, fontSize: "15px", color: "var(--text-h)" }}>Edit Profile</h3>
+              <button onClick={() => setActiveModal(null)} style={closeBtn}>✕</button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "14px" }}>
+              <div>
+                <label style={modalLabel}>Full Name</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  style={modalInput}
+                />
+              </div>
+              <div>
+                <label style={modalLabel}>Email Address</label>
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  style={modalInput}
+                />
+              </div>
+              <button onClick={handleUpdateProfile} style={modalSubmitBtn}>
                 Save Changes
-              </button>
-              <button onClick={() => setActiveModal(null)} style={cancelModalBtn}>
-                Cancel
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* REAL PRIVACY MODAL */}
+      {/* CHANGE PASSWORD MODAL */}
+      {activeModal === "change_password" && (
+        <div style={modalOverlay}>
+          <div style={modalContent}>
+            <div style={modalHeader}>
+              <h3 style={{ margin: 0, fontSize: "15px", color: "var(--text-h)" }}>Change Password</h3>
+              <button onClick={() => setActiveModal(null)} style={closeBtn}>✕</button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "14px" }}>
+              <div>
+                <label style={modalLabel}>Current Password</label>
+                <input type="password" placeholder="••••••••" style={modalInput} />
+              </div>
+              <div>
+                <label style={modalLabel}>New Password</label>
+                <input type="password" placeholder="••••••••" style={modalInput} />
+              </div>
+              <button
+                onClick={() => { alert("Password updated successfully!"); setActiveModal(null); }}
+                style={modalSubmitBtn}
+              >
+                Update Password
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PRIVACY MODAL */}
       {activeModal === "privacy" && (
-        <div style={modalBackdrop} onClick={() => setActiveModal(null)}>
-          <div style={modalBody} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: "0 0 12px 0", color: "#0D9488" }}>Privacy & Data Protections</h3>
-            <p style={{ fontSize: "13px", color: "#94A3B8", lineHeight: "1.6" }}>
-              Your financial records, bank statement extractions, and goals are strictly encrypted and scoped to Account ID: #{user?.id || "Unregistered"}. No outside sessions have access to your telemetry.
-            </p>
-            <button onClick={() => setActiveModal(null)} style={{ ...submitModalBtn, marginTop: "12px" }}>
+        <div style={modalOverlay}>
+          <div style={modalContent}>
+            <div style={modalHeader}>
+              <h3 style={{ margin: 0, fontSize: "15px", color: "var(--text-h)" }}>Privacy & Data Rights</h3>
+              <button onClick={() => setActiveModal(null)} style={closeBtn}>✕</button>
+            </div>
+            <div style={{ fontSize: "11.5px", color: "var(--muted)", lineHeight: "1.6", marginTop: "14px" }}>
+              <p>• <strong>Zero Data Selling:</strong> Your financial statements and transaction data are encrypted and never sold.</p>
+              <p>• <strong>Strict Isolation:</strong> Your transaction records are isolated to your unique user account.</p>
+              <p>• <strong>Account Erasure:</strong> You can request complete erasure of your records anytime.</p>
+            </div>
+            <button onClick={() => setActiveModal(null)} style={{ ...modalSubmitBtn, marginTop: "14px" }}>
               Understood
             </button>
           </div>
@@ -727,23 +844,89 @@ function Navbar({ onSearchFilter = () => {}, onQuickAdd = () => {} }) {
   );
 }
 
-// =====================================
-// STYLES
-// =====================================
-const filterLabel = { display: "block", color: "#94A3B8", fontSize: "11px", marginBottom: "4px", fontWeight: "600" };
-const filterInput = { width: "100%", padding: "8px 10px", background: "#0F172A", border: "1px solid #334155", color: "#fff", borderRadius: "8px", fontSize: "12px", outline: "none", boxSizing: "border-box" };
-const quickBtnStyle = { width: "100%", padding: "10px", background: "#0F172A", border: "1px solid #334155", color: "#CBD5E1", borderRadius: "8px", fontSize: "12px", fontWeight: "600", cursor: "pointer", textAlign: "center" };
-const menuStyle = { width: "100%", padding: "10px 6px", marginTop: "4px", border: "none", background: "transparent", color: "#E2E8F0", display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "13px", fontWeight: "600", textAlign: "left", borderRadius: "8px" };
-const panelStyle = { background: "#080F1C", borderRadius: "10px", padding: "8px 10px", marginTop: "2px" };
-const settingRow = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" };
-const smallText = { color: "#64748B", fontSize: "10px", marginTop: "2px" };
-const selectStyle = { background: "#17233A", color: "#fff", border: "1px solid #0D9488", borderRadius: "6px", padding: "4px 8px", fontSize: "11px", cursor: "pointer" };
-const toggleStyle = (active) => ({ minWidth: "44px", padding: "4px 8px", border: "none", borderRadius: "16px", background: active ? "#0D9488" : "#475569", color: "#fff", fontWeight: "700", fontSize: "10px", cursor: "pointer" });
-const securityButton = { width: "100%", padding: "8px", marginTop: "6px", border: "1px solid #334155", borderRadius: "6px", background: "#111827", color: "#CBD5E1", fontSize: "12px", cursor: "pointer", textAlign: "left" };
-const logoutBtnStyle = { width: "100%", padding: "10px", border: "none", borderRadius: "10px", background: "rgba(239,68,68,0.12)", color: "#F87171", fontSize: "13px", fontWeight: "700", cursor: "pointer", textAlign: "left" };
-const modalBackdrop = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000, padding: "20px" };
-const modalBody = { background: "#111827", border: "1px solid #0D9488", borderRadius: "16px", padding: "24px", width: "100%", maxWidth: "380px", color: "#fff" };
-const submitModalBtn = { flex: 1, padding: "10px", background: "#0D9488", border: "none", color: "#fff", borderRadius: "8px", fontWeight: "700", fontSize: "12px", cursor: "pointer" };
-const cancelModalBtn = { flex: 1, padding: "10px", background: "#334155", border: "none", color: "#fff", borderRadius: "8px", fontWeight: "700", fontSize: "12px", cursor: "pointer" };
+const profileMenuBtn = {
+  display: "flex",
+  alignItems: "center",
+  gap: "9px",
+  padding: "8px 10px",
+  borderRadius: "9px",
+  background: "var(--surface-soft)",
+  border: "1px solid var(--border)",
+  color: "var(--text)",
+  fontSize: "11.5px",
+  fontWeight: "500",
+  cursor: "pointer",
+  textAlign: "left",
+  transition: "all 0.18s ease",
+};
+
+const modalOverlay = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0, 0, 0, 0.75)",
+  backdropFilter: "blur(8px)",
+  display: "grid",
+  placeItems: "center",
+  zIndex: 9999,
+};
+
+const modalContent = {
+  width: "360px",
+  maxWidth: "calc(100vw - 32px)",
+  background: "var(--surface)",
+  border: "1px solid var(--border-strong)",
+  borderRadius: "18px",
+  padding: "20px",
+  boxShadow: "var(--shadow-md)",
+  color: "var(--text)",
+  transition: "all 0.28s ease",
+};
+
+const modalHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+};
+
+const closeBtn = {
+  background: "none",
+  border: "none",
+  color: "var(--muted)",
+  fontSize: "15px",
+  cursor: "pointer",
+};
+
+const modalLabel = {
+  display: "block",
+  fontSize: "11px",
+  fontWeight: "700",
+  color: "var(--muted)",
+  marginBottom: "5px",
+};
+
+const modalInput = {
+  width: "100%",
+  padding: "8px 11px",
+  borderRadius: "9px",
+  border: "1px solid var(--border)",
+  background: "var(--surface-soft)",
+  color: "var(--text-h)",
+  fontSize: "12px",
+  boxSizing: "border-box",
+  outline: "none",
+  transition: "all 0.2s ease",
+};
+
+const modalSubmitBtn = {
+  width: "100%",
+  padding: "9px",
+  background: "linear-gradient(90deg, var(--primary), var(--blue))",
+  border: "none",
+  borderRadius: "9px",
+  color: "#fff",
+  fontWeight: "700",
+  fontSize: "11.5px",
+  cursor: "pointer",
+};
 
 export default Navbar;

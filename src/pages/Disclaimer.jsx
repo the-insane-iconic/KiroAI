@@ -1,22 +1,24 @@
 import React from "react";
 
 const card = {
-  background: "#161a1f",
-  border: "1px solid #242b35",
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
   borderRadius: "16px",
   padding: "28px",
   marginBottom: "20px",
+  boxShadow: "var(--shadow-md)",
+  transition: "all 0.28s ease",
 };
 
-const h3 = { marginTop: 0, marginBottom: "12px" };
-const p = { color: "#9ca3af", lineHeight: 1.7, margin: 0 };
+const h3 = { marginTop: 0, marginBottom: "12px", color: "var(--text-h)" };
+const p = { color: "var(--muted)", lineHeight: 1.7, margin: 0 };
 
 function Disclaimer() {
   return (
-    <div style={{ color: "#ffffff", maxWidth: "820px" }}>
+    <div style={{ color: "var(--text)", maxWidth: "820px" }}>
       <div style={{ marginBottom: "35px" }}>
-        <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 700 }}>Disclaimer</h1>
-        <p style={{ margin: "4px 0 0 0", color: "#9ca3af", fontSize: "14px" }}>
+        <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 700, color: "var(--text-h)" }}>Disclaimer</h1>
+        <p style={{ margin: "4px 0 0 0", color: "var(--muted)", fontSize: "14px" }}>
           Please read before acting on anything Amivest AI tells you.
         </p>
       </div>

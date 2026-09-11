@@ -80,27 +80,27 @@ const DISCOVERY_BROKERS = [
   { provider: "INDmoney", portalUrl: "https://www.indmoney.com", type: "Unified Neo-Banking & Wealth Suite", badge: "Best for Global Tracking", clearingFee: "Consolidates all your investment accounts and tracks external portfolio holdings smoothly.", rating: "4.5" }
 ];
 
-// System Theme Design Tokens (Cyber-Grid Dark Mode Archetype)
+// System Theme Design Tokens (Dynamic Theme System)
 const THEME = {
-  canvas: "#080c14",
-  surfaceCard: "#111823",
-  surfaceInput: "#05070c",
-  borderLight: "#1f2a3a",
-  accentTeal: "#00f5d4",
+  canvas: "var(--bg)",
+  surfaceCard: "var(--surface)",
+  surfaceInput: "var(--surface-soft)",
+  borderLight: "var(--border)",
+  accentTeal: "var(--primary-accent)",
   accentOrange: "#ff4500",
   accentOrangeSoft: "rgba(255, 69, 0, 0.1)",
-  textActive: "#ffffff",
-  textMuted: "#7a8d9f",
+  textActive: "var(--text-h)",
+  textMuted: "var(--muted)",
   statusRed: "#ff527b",
   statusGold: "#ffb43a",
-  statusGreen: "#00d09c"
+  statusGreen: "#10B981"
 };
 
 const inlineStyles = {
-  cardLayout: { background: THEME.surfaceCard, border: `1px solid ${THEME.borderLight}`, borderRadius: "16px", padding: "24px" },
+  cardLayout: { background: THEME.surfaceCard, border: `1px solid ${THEME.borderLight}`, borderRadius: "16px", padding: "24px", boxShadow: "var(--shadow-sm)" },
   formInput: { width: "100%", background: THEME.surfaceInput, border: `1px solid ${THEME.borderLight}`, borderRadius: "8px", padding: "12px 14px", color: THEME.textActive, fontSize: "14px", outline: "none", boxSizing: "border-box" },
   labelStyle: { color: THEME.textMuted, fontSize: "11px", display: "block", marginBottom: "6px", fontWeight: "700" },
-  externalActionAnchor: { display: "inline-flex", alignItems: "center", justifyContent: "center", background: THEME.statusGreen, color: "#000", padding: "12px 20px", borderRadius: "8px", fontSize: "13px", fontWeight: "700", textDecoration: "none", transition: "opacity 0.2s", cursor: "pointer" }
+  externalActionAnchor: { display: "inline-flex", alignItems: "center", justifyContent: "center", background: THEME.statusGreen, color: "#fff", padding: "12px 20px", borderRadius: "8px", fontSize: "13px", fontWeight: "700", textDecoration: "none", transition: "opacity 0.2s", cursor: "pointer" }
 };
 
 // ============================================================================

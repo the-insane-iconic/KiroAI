@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 
 const BACKEND =
   import.meta.env.VITE_API_URL ||
-  "http://127.0.0.1:5000";
+  "http://127.0.0.1:5001";
 
 const DEFAULT_CATEGORIES = [
   "Food",
@@ -391,12 +391,13 @@ export default function BudgetLimits() {
 
     <div
       style={{
-        background: "#161a1f",
-        border: "1px solid #242b35",
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
         borderRadius: "16px",
         padding: "24px",
         marginBottom: "30px",
-        color: "#fff",
+        color: "var(--text)",
+        transition: "all 0.28s ease",
       }}
     >
 
@@ -421,6 +422,7 @@ export default function BudgetLimits() {
             style={{
               margin: 0,
               fontSize: "24px",
+              color: "var(--text-h)",
             }}
           >
             💸 Spending & Daily Expenses
@@ -428,7 +430,7 @@ export default function BudgetLimits() {
 
           <p
             style={{
-              color: "#9ca3af",
+              color: "var(--muted)",
               marginTop: "7px",
             }}
           >
@@ -820,7 +822,7 @@ function LimitCard({
 
 
   let progressColor =
-    "#10b981";
+    "var(--primary)";
 
   if (percentage >= 100) {
 
@@ -839,11 +841,12 @@ function LimitCard({
 
     <div
       style={{
-        background: "#0b1420",
+        background: "var(--surface-soft)",
         border:
-          "1px solid #243244",
+          "1px solid var(--border)",
         borderRadius: "12px",
         padding: "18px",
+        transition: "all 0.28s ease",
       }}
     >
 
@@ -855,7 +858,7 @@ function LimitCard({
         }}
       >
 
-        <strong>
+        <strong style={{ color: "var(--text-h)" }}>
           {limit.category}
         </strong>
 
@@ -884,6 +887,7 @@ function LimitCard({
           marginTop: "15px",
           fontSize: "22px",
           fontWeight: "700",
+          color: "var(--text-h)",
         }}
       >
         {money(limit.spent)}
@@ -892,7 +896,7 @@ function LimitCard({
 
       <div
         style={{
-          color: "#64748b",
+          color: "var(--muted)",
           fontSize: "12px",
           marginTop: "3px",
         }}
@@ -903,7 +907,7 @@ function LimitCard({
 
       <div
         style={{
-          background: "#172033",
+          background: "var(--border)",
           height: "8px",
           borderRadius: "20px",
           overflow: "hidden",
@@ -929,18 +933,25 @@ function LimitCard({
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent:
+            "space-between",
           marginTop: "10px",
           fontSize: "12px",
+          color: "var(--muted)",
         }}
       >
 
         <span>
-          {percentage.toFixed(0)}% used
+          {percentage.toFixed(0)}%
+          used
         </span>
 
+
         <span>
-          {money(limit.remaining)} left
+          {money(
+            limit.remaining
+          )}{" "}
+          left
         </span>
 
       </div>
@@ -974,7 +985,7 @@ function LimitCard({
 const buttonStyle = {
 
   background:
-    "linear-gradient(135deg,#0d9488,#06b6d4)",
+    "linear-gradient(135deg, var(--primary-accent), var(--primary))",
 
   border: "none",
 
@@ -988,15 +999,17 @@ const buttonStyle = {
 
   cursor: "pointer",
 
+  transition: "all 0.28s ease",
+
 };
 
 
 const formBox = {
 
-  background: "#0b1420",
+  background: "var(--surface-soft)",
 
   border:
-    "1px solid #243244",
+    "1px solid var(--border)",
 
   borderRadius: "12px",
 
@@ -1004,12 +1017,14 @@ const formBox = {
 
   marginBottom: "20px",
 
+  transition: "all 0.28s ease",
+
 };
 
 
 const helpText = {
 
-  color: "#94a3b8",
+  color: "var(--muted)",
 
   fontSize: "13px",
 
@@ -1020,7 +1035,7 @@ const label = {
 
   display: "block",
 
-  color: "#cbd5e1",
+  color: "var(--muted)",
 
   fontSize: "13px",
 
@@ -1039,18 +1054,20 @@ const input = {
 
   boxSizing: "border-box",
 
-  background: "#07111f",
+  background: "var(--surface)",
 
-  color: "#fff",
+  color: "var(--text-h)",
 
   border:
-    "1px solid #26374b",
+    "1px solid var(--border)",
 
   borderRadius: "8px",
 
   padding: "12px",
 
   outline: "none",
+
+  transition: "all 0.28s ease",
 
 };
 
@@ -1062,7 +1079,7 @@ const saveButton = {
   marginTop: "18px",
 
   background:
-    "linear-gradient(135deg,#0d9488,#06b6d4)",
+    "linear-gradient(135deg, var(--primary-accent), var(--primary))",
 
   color: "#fff",
 
@@ -1075,5 +1092,7 @@ const saveButton = {
   fontWeight: "700",
 
   cursor: "pointer",
+
+  transition: "all 0.28s ease",
 
 };

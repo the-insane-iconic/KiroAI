@@ -1,25 +1,29 @@
 import React, { useState } from "react";
 
 const card = {
-  background: "#161a1f",
-  border: "1px solid #242b35",
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
   borderRadius: "16px",
   padding: "28px",
+  boxShadow: "var(--shadow-md)",
+  transition: "all 0.28s ease",
 };
 
 const inputStyle = {
   width: "100%",
-  background: "#0d1117",
-  border: "1px solid #242b35",
+  background: "var(--surface-soft)",
+  border: "1px solid var(--border)",
   borderRadius: "8px",
   padding: "12px 14px",
-  color: "#ffffff",
+  color: "var(--text-h)",
   fontSize: "14px",
   marginTop: "6px",
   boxSizing: "border-box",
+  outline: "none",
+  transition: "all 0.2s ease",
 };
 
-const labelStyle = { color: "#9ca3af", fontSize: "13px", fontWeight: 600 };
+const labelStyle = { color: "var(--muted)", fontSize: "13px", fontWeight: 600 };
 
 function Contact() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
@@ -35,7 +39,6 @@ function Contact() {
 
     setStatus("sending");
     try {
-      // Wire this up to your backend contact route, e.g. POST /contact
       const res = await fetch("/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -50,10 +53,10 @@ function Contact() {
   };
 
   return (
-    <div style={{ color: "#ffffff", maxWidth: "620px" }}>
+    <div style={{ color: "var(--text)", maxWidth: "620px" }}>
       <div style={{ marginBottom: "35px" }}>
-        <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 700 }}>Contact Us</h1>
-        <p style={{ margin: "4px 0 0 0", color: "#9ca3af", fontSize: "14px" }}>
+        <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 700, color: "var(--text-h)" }}>Contact Us</h1>
+        <p style={{ margin: "4px 0 0 0", color: "var(--muted)", fontSize: "14px" }}>
           Questions, feedback, or something not working right — tell us.
         </p>
       </div>
@@ -108,7 +111,7 @@ function Contact() {
             type="submit"
             disabled={status === "sending"}
             style={{
-              background: "#ff4500",
+              background: "linear-gradient(90deg, var(--primary-accent), var(--primary))",
               color: "#fff",
               border: "none",
               padding: "12px 24px",
@@ -135,8 +138,8 @@ function Contact() {
       </div>
 
       <div style={{ ...card, marginTop: "20px" }}>
-        <h3 style={{ marginTop: 0, marginBottom: "10px" }}>Other ways to reach us</h3>
-        <p style={{ color: "#9ca3af", margin: 0, lineHeight: 1.8 }}>
+        <h3 style={{ marginTop: 0, marginBottom: "10px", color: "var(--text-h)" }}>Other ways to reach us</h3>
+        <p style={{ color: "var(--muted)", margin: 0, lineHeight: 1.8 }}>
           Email: support@amivest.ai<br />
           Response time: within 2 business days
         </p>

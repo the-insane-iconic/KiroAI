@@ -7,9 +7,9 @@ import { useNavigate } from "react-router-dom";
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL?.trim() ||
   import.meta.env.VITE_API_URL?.trim() ||
-  "http://127.0.0.1:5000";
+  "http://127.0.0.1:5001";
 
-function ImportStatement() {
+function ImportStatement({ setTransactions }) {
   const navigate = useNavigate();
 
   const [file, setFile] = useState(null);
@@ -223,6 +223,18 @@ function ImportStatement() {
             `✅ Statement processed successfully. ${count} transactions imported.`
           );
         }
+
+        if (Array.isArray(data.transactions) && typeof setTransactions === "function") {
+          setTransactions(data.transactions);
+        } else if (typeof setTransactions === "function") {
+          try {
+            const refRes = await fetch(`${BACKEND_URL}/transactions`, { method: "GET", credentials: "include" });
+            const refData = await refRes.json();
+            if (Array.isArray(refData.transactions)) {
+              setTransactions(refData.transactions);
+            }
+          } catch (_) {}
+        }
       }
 
       /*
@@ -275,9 +287,8 @@ function ImportStatement() {
         <h1
           style={{
             margin: 0,
-            fontSize: "32px",
-            fontWeight: "900",
-            color: "#F97316",
+            fontSize: "30px",
+            color: "var(--text-h)",
           }}
         >
           📄 Statement Importer
@@ -285,7 +296,7 @@ function ImportStatement() {
 
         <p
           style={{
-            color: "#94a3b8",
+            color: "var(--muted)",
             marginTop: "8px",
           }}
         >
@@ -300,21 +311,19 @@ function ImportStatement() {
       {user && (
         <div
           style={{
-            background:
-              "rgba(13,148,136,0.08)",
-            border:
-              "1px solid rgba(13,148,136,0.25)",
+            background: "var(--surface-soft)",
+            border: "1px solid var(--border)",
             borderRadius: "12px",
             padding: "12px 15px",
             marginBottom: "20px",
-            color: "#cbd5e1",
+            color: "var(--text)",
             fontSize: "13px",
           }}
         >
           👤 Logged in as{" "}
           <strong
             style={{
-              color: "#14B8A6",
+              color: "var(--primary-accent)",
             }}
           >
             {user.name ||
@@ -328,12 +337,13 @@ function ImportStatement() {
 
       <div
         style={{
-          background: "#161a1f",
-          border:
-            "1px solid #263244",
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
           borderRadius: "18px",
           padding: "30px",
           maxWidth: "850px",
+          boxShadow: "var(--shadow-md)",
+          transition: "all 0.28s ease",
         }}
       >
         {/* DROP AREA */}
@@ -342,14 +352,13 @@ function ImportStatement() {
           htmlFor="statement-file"
           style={{
             display: "block",
-            border:
-              "2px dashed #334155",
+            border: "2px dashed var(--border-strong)",
             borderRadius: "15px",
             padding: "45px 25px",
             textAlign: "center",
             cursor: "pointer",
-            background:
-              "#0B1420",
+            background: "var(--surface-soft)",
+            transition: "all 0.2s ease",
           }}
         >
           <div
@@ -364,7 +373,7 @@ function ImportStatement() {
           <h2
             style={{
               margin: 0,
-              color: "#fff",
+              color: "var(--text-h)",
             }}
           >
             Select Bank Statement
@@ -372,7 +381,7 @@ function ImportStatement() {
 
           <p
             style={{
-              color: "#94a3b8",
+              color: "var(--muted)",
               fontSize: "13px",
             }}
           >
@@ -396,10 +405,9 @@ function ImportStatement() {
             style={{
               display: "inline-block",
               marginTop: "15px",
-              padding:
-                "10px 20px",
+              padding: "10px 20px",
               borderRadius: "8px",
-              background: "#0D9488",
+              background: "linear-gradient(90deg, var(--primary-accent), var(--primary))",
               color: "#fff",
               fontWeight: "700",
               fontSize: "13px",
@@ -417,15 +425,13 @@ function ImportStatement() {
               marginTop: "18px",
               padding: "14px",
               borderRadius: "10px",
-              background:
-                "rgba(13,148,136,0.1)",
-              border:
-                "1px solid rgba(13,148,136,0.3)",
+              background: "var(--primary-soft)",
+              border: "1px solid var(--border)",
             }}
           >
             <div
               style={{
-                color: "#14B8A6",
+                color: "var(--primary-accent)",
                 fontWeight: "700",
               }}
             >
@@ -434,7 +440,7 @@ function ImportStatement() {
 
             <div
               style={{
-                color: "#64748b",
+                color: "var(--muted)",
                 fontSize: "12px",
                 marginTop: "4px",
               }}
@@ -459,7 +465,7 @@ function ImportStatement() {
           <label
             style={{
               display: "block",
-              color: "#cbd5e1",
+              color: "var(--muted)",
               fontSize: "13px",
               marginBottom: "7px",
             }}
@@ -479,15 +485,12 @@ function ImportStatement() {
             autoComplete="off"
             style={{
               width: "100%",
-              boxSizing:
-                "border-box",
+              boxSizing: "border-box",
               padding: "13px",
               borderRadius: "9px",
-              border:
-                "1px solid #334155",
-              background:
-                "#0B1420",
-              color: "#fff",
+              border: "1px solid var(--border)",
+              background: "var(--surface-soft)",
+              color: "var(--text-h)",
               outline: "none",
             }}
           />
@@ -501,11 +504,9 @@ function ImportStatement() {
               marginTop: "18px",
               padding: "13px",
               borderRadius: "10px",
-              background:
-                "rgba(239,68,68,0.1)",
-              border:
-                "1px solid rgba(239,68,68,0.35)",
-              color: "#fca5a5",
+              background: "rgba(239,68,68,0.1)",
+              border: "1px solid rgba(239,68,68,0.35)",
+              color: "#ef4444",
               fontSize: "13px",
             }}
           >
@@ -521,15 +522,33 @@ function ImportStatement() {
               marginTop: "18px",
               padding: "13px",
               borderRadius: "10px",
-              background:
-                "rgba(16,185,129,0.1)",
-              border:
-                "1px solid rgba(16,185,129,0.35)",
-              color: "#6ee7b7",
+              background: "rgba(16,185,129,0.1)",
+              border: "1px solid rgba(16,185,129,0.35)",
+              color: "#10b981",
               fontSize: "13px",
             }}
           >
-            {message}
+            <div>{message}</div>
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              style={{
+                marginTop: "10px",
+                padding: "8px 16px",
+                borderRadius: "8px",
+                background: "#10b981",
+                border: "none",
+                color: "#ffffff",
+                fontWeight: "700",
+                fontSize: "12px",
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              📊 View Updated Dashboard →
+            </button>
           </div>
         )}
 
@@ -548,9 +567,9 @@ function ImportStatement() {
             borderRadius: "10px",
             background:
               loading || !file
-                ? "#334155"
-                : "linear-gradient(90deg,#0D9488,#06B6D4)",
-            color: "#fff",
+                ? "var(--surface-soft)"
+                : "linear-gradient(90deg, var(--primary-accent), var(--primary))",
+            color: loading || !file ? "var(--muted)" : "#fff",
             fontSize: "15px",
             fontWeight: "800",
             cursor:
@@ -574,12 +593,10 @@ function ImportStatement() {
             width: "100%",
             marginTop: "12px",
             padding: "12px",
-            border:
-              "1px solid #263244",
+            border: "1px solid var(--border)",
             borderRadius: "10px",
-            background:
-              "transparent",
-            color: "#94a3b8",
+            background: "transparent",
+            color: "var(--muted)",
             cursor: "pointer",
           }}
         >

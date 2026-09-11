@@ -56,8 +56,14 @@ def check():
         """, (user_id,))
         large_txns = cursor.fetchall()
 
-        cursor.execute("SELECT COUNT(*) AS cnt FROM loan_tracker WHERE user_id = %s", (user_id,))
-        loan_count = cursor.fetchone()["cnt"]
+        loan_count = 0
+        try:
+            cursor.execute("SELECT COUNT(*) AS cnt FROM loan_tracker WHERE user_id = %s", (user_id,))
+            res = cursor.fetchone()
+            if res and "cnt" in res:
+                loan_count = res["cnt"]
+        except Exception:
+            loan_count = 0
 
         cursor.close()
         conn.close()

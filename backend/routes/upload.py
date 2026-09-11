@@ -366,44 +366,30 @@ def upload_file():
                 )
             )
 
-            is_credit = (
+            is_debit = (
+                "debit" in raw_type
+                or "dr" in raw_type
+                or "expense" in raw_type
+                or amount < 0
+            )
+
+            is_credit = not is_debit and (
                 "credit" in raw_type
                 or "cr" in raw_type
+                or "income" in raw_type
                 or amount > 0
             )
 
+            abs_amount = abs(amount)
 
             if schema_format == "cr_dr":
-
-                db_type = (
-                    "cr"
-                    if is_credit
-                    else "dr"
-                )
-
+                db_type = "cr" if is_credit else "dr"
             elif schema_format == "c_d":
-
-                db_type = (
-                    "c"
-                    if is_credit
-                    else "d"
-                )
-
+                db_type = "c" if is_credit else "d"
             elif schema_format == "income_expense":
-
-                db_type = (
-                    "income"
-                    if is_credit
-                    else "expense"
-                )
-
+                db_type = "income" if is_credit else "expense"
             else:
-
-                db_type = (
-                    "credit"
-                    if is_credit
-                    else "debit"
-                )
+                db_type = "credit" if is_credit else "debit"
 
 
             date = standardize_date(
@@ -458,7 +444,7 @@ def upload_file():
                     user_id,
                     db_type,
                     category,
-                    amount,
+                    abs_amount,
                     description,
                     date
                 )

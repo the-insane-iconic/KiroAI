@@ -24,7 +24,14 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Amivest AI" />
     <meta name="twitter:description" content="AI-powered personal finance platform for budgeting, investments, loan guidance, fraud detection, and financial insights." />
-    <meta name="twitter:image" content="/favicon.svg" />
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('app_theme') || 'emerald';
+          document.documentElement.setAttribute('data-theme', saved);
+        } catch(e) {}
+      })();
+    </script>
 </head>
 
 <body>

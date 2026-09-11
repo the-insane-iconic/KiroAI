@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Circle,
   GoogleMap,
@@ -7,7 +8,7 @@ import {
 } from "@react-google-maps/api";
 
 const API_BASE =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
+  import.meta.env.VITE_API_URL || "http://127.0.0.1:5001";
 
 const BUSINESS_TYPES = [
   ["electronics", "📱 Electronics / Mobile"],
@@ -397,6 +398,7 @@ function AnimatedCounter({ value, suffix = "" }) {
 }
 
 export default function BusinessAdvisor() {
+  const navigate = useNavigate();
   const [businessType, setBusinessType] = useState("");
   const [location, setLocation] = useState("");
   const [capital, setCapital] = useState("");
@@ -781,25 +783,48 @@ export default function BusinessAdvisor() {
 
   return (
     <div style={styles.page}>
+
       <div style={styles.backgroundGlowOne}></div>
       <div style={styles.backgroundGlowTwo}></div>
       <div style={styles.gridOverlay}></div>
 
       <main style={styles.container}>
-        <header style={styles.topbar}>
-          <div style={styles.brand}>
-            <div style={styles.brandMark}>A</div>
-            <div>
-              <div style={styles.brandName}>AmiVest</div>
-              <div style={styles.brandSub}>Business Intelligence</div>
-            </div>
-          </div>
-
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "8px", flexWrap: "wrap", marginBottom: "20px" }}>
+          <button
+            onClick={() => navigate("/loan")}
+            style={{
+              padding: "6px 12px",
+              borderRadius: "9999px",
+              border: "1px solid rgba(6,182,212,0.4)",
+              background: "rgba(6,182,212,0.12)",
+              color: "#38BDF8",
+              fontSize: "11.5px",
+              fontWeight: "700",
+              cursor: "pointer",
+            }}
+          >
+            🏛️ Govt Loans & Subsidies
+          </button>
+          <button
+            onClick={() => navigate("/launchpad")}
+            style={{
+              padding: "6px 12px",
+              borderRadius: "9999px",
+              border: "1px solid rgba(139,92,246,0.4)",
+              background: "rgba(139,92,246,0.14)",
+              color: "#C4B5FD",
+              fontSize: "11.5px",
+              fontWeight: "700",
+              cursor: "pointer",
+            }}
+          >
+            🚀 90-Day Launchpad
+          </button>
           <div style={styles.topPill}>
             <span style={styles.liveDot}></span>
-            AI decision workspace
+            Rural & MSME Intelligence
           </div>
-        </header>
+        </div>
 
         <section style={styles.hero}>
           <div style={styles.heroKicker}>
@@ -1155,6 +1180,9 @@ export default function BusinessAdvisor() {
           )}
         </section>
 
+        {/* ── Subtle Local Scout (embedded from local search logic) ── */}
+        <LocalPlaceScout location={location} />
+
         <footer style={styles.footer}>
           <div>
             <strong>AmiVest</strong> · Business decision intelligence
@@ -1165,11 +1193,142 @@ export default function BusinessAdvisor() {
           </div>
         </footer>
       </main>
+
+    </div>
+  );
+}
+
+/* ── Local Place Scout (subtle, embedded from area search logic) ── */
+const LOCAL_AREA_DATA = [
+  { area: "Main Market / Central Bazaar", type: "Commercial", footfall: "High", competition: "High", rent: "₹8k–22k/mo", suitedFor: ["Retail", "Food", "Services"] },
+  { area: "Near Bus Stand / Transport Hub", type: "Transit", footfall: "Very High", competition: "Moderate", rent: "₹6k–16k/mo", suitedFor: ["Food", "Logistics", "Repair"] },
+  { area: "Residential Colony / Mohalla", type: "Residential", footfall: "Moderate", competition: "Low", rent: "₹3k–8k/mo", suitedFor: ["Grocery", "Salon", "Tuition"] },
+  { area: "Industrial / MIDC Zone", type: "Industrial", footfall: "Low", competition: "Low", rent: "₹4k–12k/mo", suitedFor: ["Wholesale", "Repair", "B2B"] },
+  { area: "Agricultural Mandi Area", type: "Trade", footfall: "Seasonal", competition: "Moderate", rent: "₹2k–7k/mo", suitedFor: ["Agri-input", "Equipment", "Cold Storage"] },
+];
+
+function LocalPlaceScout({ location }) {
+  const [open, setOpen] = React.useState(false);
+  const [filter, setFilter] = React.useState("All");
+
+  const filtered = filter === "All"
+    ? LOCAL_AREA_DATA
+    : LOCAL_AREA_DATA.filter((d) => d.type === filter);
+
+  if (!location) return null;
+
+  return (
+    <div style={{
+      margin: "0 0 8px 0",
+      borderRadius: "12px",
+      border: "1px solid rgba(255,255,255,0.05)",
+      overflow: "hidden",
+      background: "rgba(10,15,30,0.4)",
+    }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 16px",
+          background: "transparent",
+          border: "none",
+          color: "#64748B",
+          fontSize: "11px",
+          fontWeight: "600",
+          cursor: "pointer",
+          textAlign: "left",
+          letterSpacing: "0.3px",
+        }}
+      >
+        <span>📍 Local Area Commercial Density — {location}</span>
+        <span style={{ fontSize: "9px" }}>{open ? "▲ hide" : "▼ show"}</span>
+      </button>
+
+      {open && (
+        <div style={{ padding: "0 16px 14px 16px" }}>
+          <div style={{ display: "flex", gap: "6px", marginBottom: "10px", flexWrap: "wrap" }}>
+            {["All", "Commercial", "Transit", "Residential", "Industrial", "Trade"].map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                style={{
+                  padding: "3px 9px",
+                  borderRadius: "9999px",
+                  border: `1px solid ${filter === f ? "rgba(45,212,191,0.5)" : "rgba(255,255,255,0.08)"}`,
+                  background: filter === f ? "rgba(13,148,136,0.2)" : "transparent",
+                  color: filter === f ? "#2DD4BF" : "#64748B",
+                  fontSize: "10px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                }}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: "grid", gap: "6px" }}>
+            {filtered.map((item) => (
+              <div
+                key={item.area}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr auto auto auto",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "8px 10px",
+                  borderRadius: "8px",
+                  background: "rgba(15,23,42,0.5)",
+                  border: "1px solid rgba(255,255,255,0.04)",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#CBD5E1" }}>{item.area}</div>
+                  <div style={{ fontSize: "10px", color: "#64748B", marginTop: "1px" }}>
+                    Suited: {item.suitedFor.join(", ")}
+                  </div>
+                </div>
+                <span style={{ fontSize: "10px", color: "#94A3B8", textAlign: "right" }}>{item.rent}</span>
+                <span style={{
+                  fontSize: "9px",
+                  padding: "2px 7px",
+                  borderRadius: "9999px",
+                  background: item.footfall === "High" || item.footfall === "Very High"
+                    ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.12)",
+                  color: item.footfall === "High" || item.footfall === "Very High" ? "#34D399" : "#FBBF24",
+                  fontWeight: "700",
+                }}>
+                  {item.footfall}
+                </span>
+                <span style={{
+                  fontSize: "9px",
+                  padding: "2px 7px",
+                  borderRadius: "9999px",
+                  background: item.competition === "Low"
+                    ? "rgba(16,185,129,0.12)" : item.competition === "High"
+                    ? "rgba(239,68,68,0.12)" : "rgba(148,163,184,0.1)",
+                  color: item.competition === "Low" ? "#34D399" : item.competition === "High" ? "#F87171" : "#94A3B8",
+                  fontWeight: "700",
+                }}>
+                  {item.competition} comp.
+                </span>
+              </div>
+            ))}
+          </div>
+          <p style={{ margin: "8px 0 0 0", fontSize: "9px", color: "#374151" }}>
+            Area data is indicative based on typical Indian tier-2/3 town patterns. Validate locally before committing.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
 
 function Field({ label, children }) {
+
   return (
     <label style={styles.field}>
       <span style={styles.fieldLabel}>{label}</span>
@@ -1402,6 +1561,30 @@ function AnalysisResult({
                   </strong>
                 </div>
               </div>
+
+              <button
+                onClick={() => navigate("/loan")}
+                style={{
+                  marginTop: "12px",
+                  width: "100%",
+                  padding: "10px 14px",
+                  borderRadius: "10px",
+                  border: "1px solid rgba(6,182,212,0.4)",
+                  background: "linear-gradient(90deg, rgba(6,182,212,0.2), rgba(13,148,136,0.3))",
+                  color: "#38BDF8",
+                  fontSize: "12px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <span>🏛️</span>
+                <span>Evaluate Full Govt Loan & Subsidy Eligibility in Loan Advisor →</span>
+              </button>
             </div>
           )}
 
@@ -1982,11 +2165,9 @@ function Stat({ label, value, icon }) {
 const styles = {
   page: {
     position: "relative",
-    minHeight: "100vh",
-    overflow: "hidden",
-    background:
-      "linear-gradient(180deg, #f7fcfa 0%, #f1f8f5 45%, #eef5f2 100%)",
-    color: "#10252b",
+    minHeight: "100%",
+    background: "transparent",
+    color: "var(--text, #10252b)",
     fontFamily:
       'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   },

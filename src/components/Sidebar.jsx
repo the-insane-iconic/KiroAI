@@ -3,140 +3,378 @@ import { NavLink, useNavigate } from "react-router-dom";
 function Sidebar() {
   const navigate = useNavigate();
 
-  const menu = [
-    { name: "Dashboard", path: "/" },
-    { name: "Import Statement", path: "/import" },
-    { name: "AI Talk", path: "/aitalk" },
-    { name: "Goals", path: "/goals" },
-    { name: "Investments", path: "/investments" },
-    { name: "Loan Advisor", path: "/loan" },
-    { name: "RBI Rules", path: "/rbi" },
-    { name: "Tax Alerts", path: "/tax" },
-    { name: "News", path: "/news" },
+  // PRIMARY: Financial Management (dedicated AmiVest purpose)
+  const financialMenu = [
+    { name: "Dashboard", path: "/", icon: "📊", desc: "Cashflow & financial health" },
+    { name: "Goals & Targets", path: "/goals", icon: "🎯", desc: "Business & capital milestones" },
+    { name: "Investments", path: "/investments", icon: "📈", desc: "Growth & surplus allocation" },
+    { name: "Tax & Subsidies", path: "/tax", icon: "🧾", desc: "Tax savings & filing alerts" },
+    { name: "Market News", path: "/news", icon: "📰", desc: "Local trade & scheme updates" },
+  ];
+
+  // SECONDARY: Entrepreneur toolset
+  const entrepreneurMenu = [
+    {
+      name: "Ami-Business Feasibility",
+      path: "/business",
+      icon: "🏪",
+      badge: "Market AI",
+      badgeColor: "#10B981",
+      desc: "Hyper-local demand & footfall",
+    },
+    {
+      name: "90-Day Launchpad",
+      path: "/launchpad",
+      icon: "🚀",
+      badge: "Roadmap",
+      badgeColor: "#8B5CF6",
+      desc: "Zero to first profit plan",
+    },
+    {
+      name: "Govt Loan Advisor",
+      path: "/loan",
+      icon: "🏛️",
+      badge: "Subsidies",
+      badgeColor: "#06B6D4",
+      desc: "PMEGP, Mudra & repayment fit",
+    },
+    {
+      name: "RBI Rules & Norms",
+      path: "/rbi",
+      icon: "📜",
+      badge: "Compliance",
+      badgeColor: "#8B5CF6",
+      desc: "Lending rules & protection",
+    },
   ];
 
   return (
-    <div
+    <aside
       style={{
-        width: "280px",
-        minHeight: "100vh",
-        background:
-          "linear-gradient(180deg, #0F172A 0%, #1A1F3A 50%, #0D1B2A 100%)",
-        borderRight: "3px solid #0D9488",
-        padding: "30px 18px",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+        width: "275px",
+        minWidth: "275px",
+        height: "100vh",
+        maxHeight: "100vh",
+        position: "sticky",
+        top: 0,
+        alignSelf: "flex-start",
+        background: "var(--sidebar-bg)",
+        borderRight: "1px solid var(--border)",
+        padding: "18px 14px 18px 14px",
+        boxShadow: "var(--shadow-md)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "14px",
+        zIndex: 100,
+        boxSizing: "border-box",
+        overflow: "hidden",
+        flexShrink: 0,
       }}
     >
-      {/* Logo */}
+      {/* Brand Header */}
       <div
+        onClick={() => navigate("/")}
         style={{
-          textAlign: "center",
-          marginBottom: "45px",
-          paddingBottom: "20px",
-          borderBottom: "2px solid #0D9488",
+          cursor: "pointer",
+          paddingBottom: "16px",
+          borderBottom: "1px solid var(--border)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "4px",
         }}
       >
-        <h1
-          style={{
-            margin: 0,
-            fontSize: "30px",
-            fontWeight: "800",
-            background: "linear-gradient(90deg, #0D9488, #14B8A6, #06B6D4)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            letterSpacing: "1px",
-          }}
-        >
-          Amivest AI
-        </h1>
-
-        <p
-          style={{
-            color: "#94A3B8",
-            fontSize: "13px",
-            marginTop: "8px",
-            fontWeight: "500",
-          }}
-        >
-          Your AI Financial Guardian
-        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "11px",
+              background: "linear-gradient(135deg, var(--primary), var(--primary-accent))",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 4px 14px rgba(13, 148, 136, 0.4)",
+              fontSize: "18px",
+              fontWeight: "900",
+              color: "#fff",
+              flexShrink: 0,
+            }}
+          >
+            A
+          </div>
+          <div>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: "21px",
+                fontWeight: "800",
+                letterSpacing: "-0.5px",
+                background: "linear-gradient(90deg, #14B8A6, #2DD4BF, #38BDF8)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              Amivest AI
+            </h1>
+            <span
+              style={{
+                fontSize: "10.5px",
+                fontWeight: "700",
+                textTransform: "uppercase",
+                letterSpacing: "0.9px",
+                color: "var(--muted)",
+              }}
+            >
+              Rural & MSME Co-Pilot
+            </span>
+          </div>
+        </div>
       </div>
 
-      {/* Menu */}
-      {menu.map((item) => (
-        <NavLink
-          key={item.path}
-          to={item.path}
-          style={({ isActive }) => ({
-            display: "block",
-            padding: "16px 22px",
-            marginBottom: "12px",
-            textDecoration: "none",
-            borderRadius: "16px",
-            fontWeight: "600",
-            fontSize: "15px",
-            transition: "0.3s",
-            background: isActive
-              ? "linear-gradient(90deg, #0D9488, #14B8A6)"
-              : "rgba(13,148,136,0.08)",
-            color: isActive ? "#fff" : "#CBD5E1",
-            borderLeft: isActive
-              ? "4px solid #06B6D4"
-              : "4px solid transparent",
-            boxShadow: isActive
-              ? "0 10px 30px rgba(13,148,136,0.3)"
-              : "none",
-          })}
-        >
-          {item.name}
-        </NavLink>
-      ))}
-
-      {/* Premium Card */}
+      {/* Nav List Wrapper */}
       <div
+        className="sidebar-nav-scroll"
         style={{
-          marginTop: "45px",
-          padding: "24px 20px",
-          borderRadius: "18px",
-          background:
-            "linear-gradient(135deg,#0D9488 0%,#14B8A6 50%,#06B6D4 100%)",
-          color: "#fff",
-          boxShadow: "0 15px 40px rgba(13,148,136,0.4)",
-          border: "2px solid #0D9488",
+          display: "flex",
+          flexDirection: "column",
+          gap: "14px",
+          overflowY: "auto",
+          paddingRight: "2px",
+          flex: 1,
+          minHeight: 0,
         }}
       >
-        <h3 style={{ margin: 0 }}>🚀 AI Premium</h3>
+        {/* SECTION 1: FINANCIAL PLANNING — Primary */}
+        <div>
+          <div style={{ padding: "0 6px 9px 6px" }}>
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: "800",
+                letterSpacing: "1.3px",
+                textTransform: "uppercase",
+                color: "var(--primary-accent)",
+              }}
+            >
+              💼 Financial Planning
+            </span>
+          </div>
 
-        <p
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            {financialMenu.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.path === "/"}
+                style={({ isActive }) => ({
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "11px",
+                  padding: "10px 13px",
+                  borderRadius: "11px",
+                  textDecoration: "none",
+                  transition: "all 0.18s cubic-bezier(0.4, 0, 0.2, 1)",
+                  background: isActive ? "var(--primary-soft)" : "var(--surface-soft)",
+                  border: isActive ? "1px solid var(--border-strong)" : "1px solid var(--border)",
+                  boxShadow: isActive ? "var(--shadow-sm)" : "none",
+                  color: isActive ? "var(--text-h)" : "var(--text)",
+                })}
+              >
+                {({ isActive }) => (
+                  <>
+                    <span
+                      style={{
+                        fontSize: "17px",
+                        flexShrink: 0,
+                        filter: isActive ? "drop-shadow(0 0 6px rgba(45, 212, 191, 0.5))" : "none",
+                      }}
+                    >
+                      {item.icon}
+                    </span>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          fontSize: "13.5px",
+                          fontWeight: isActive ? "700" : "600",
+                          letterSpacing: "-0.2px",
+                          color: isActive ? "var(--text-h)" : "var(--text)",
+                          lineHeight: "1.25",
+                        }}
+                      >
+                        {item.name}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "10.5px",
+                          color: isActive ? "var(--primary-accent)" : "var(--muted)",
+                          marginTop: "2px",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {item.desc}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+
+        {/* Subtle Divider between main sections */}
+        <div
           style={{
-            fontSize: "13px",
-            lineHeight: "22px",
-            marginTop: "12px",
+            height: "1px",
+            background: "linear-gradient(90deg, transparent, var(--border-strong), transparent)",
+            margin: "2px 4px",
           }}
-        >
-          Unlock unlimited AI chats, premium financial insights, smart
-          investment recommendations, fraud protection, and advanced analytics.
-        </p>
+        />
 
+        {/* SECTION 2: ENTREPRENEUR ENGINES — Secondary */}
+        <div>
+          <div style={{ padding: "0 6px 9px 6px" }}>
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: "800",
+                letterSpacing: "1.3px",
+                textTransform: "uppercase",
+                color: "var(--muted)",
+              }}
+            >
+              🏪 Entrepreneur Tools
+            </span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            {entrepreneurMenu.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                style={({ isActive }) => ({
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "10px 13px",
+                  borderRadius: "11px",
+                  textDecoration: "none",
+                  transition: "all 0.18s cubic-bezier(0.4, 0, 0.2, 1)",
+                  background: isActive ? "var(--primary-soft)" : "var(--surface-soft)",
+                  border: isActive ? "1px solid var(--border-strong)" : "1px solid var(--border)",
+                  boxShadow: isActive ? "var(--shadow-sm)" : "none",
+                  color: isActive ? "var(--text-h)" : "var(--text)",
+                })}
+              >
+                {({ isActive }) => (
+                  <>
+                    <div style={{ display: "flex", alignItems: "center", gap: "11px", minWidth: 0, flex: 1 }}>
+                      <span
+                        style={{
+                          fontSize: "17px",
+                          flexShrink: 0,
+                          filter: isActive ? "drop-shadow(0 0 6px rgba(45, 212, 191, 0.5))" : "none",
+                        }}
+                      >
+                        {item.icon}
+                      </span>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div
+                          style={{
+                            fontSize: "13.5px",
+                            fontWeight: isActive ? "700" : "600",
+                            color: isActive ? "var(--text-h)" : "var(--text)",
+                            lineHeight: "1.25",
+                          }}
+                        >
+                          {item.name}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "10.5px",
+                            color: isActive ? "var(--primary-accent)" : "var(--muted)",
+                            marginTop: "2px",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {item.desc}
+                        </div>
+                      </div>
+                    </div>
+
+                    {item.badge && (
+                      <span
+                        style={{
+                          fontSize: "9.5px",
+                          fontWeight: "700",
+                          padding: "3px 7px",
+                          borderRadius: "9999px",
+                          background: `${item.badgeColor}24`,
+                          color: item.badgeColor,
+                          border: `1px solid ${item.badgeColor}55`,
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                          marginLeft: "6px",
+                        }}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Upgrade Card */}
+      <div
+        style={{
+          padding: "14px",
+          borderRadius: "14px",
+          background: "var(--surface-soft)",
+          border: "1px solid var(--border-strong)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontSize: "16px" }}>🚀</span>
+          <span style={{ fontSize: "12px", fontWeight: "800", color: "var(--text-h)" }}>
+            MSME Pro Intelligence
+          </span>
+        </div>
+        <p style={{ margin: 0, fontSize: "11px", color: "var(--muted)", lineHeight: "1.4" }}>
+          Instant subsidy checks, localized footfall data & loan assistance.
+        </p>
         <button
           onClick={() => navigate("/premium")}
           style={{
-            marginTop: "18px",
+            marginTop: "4px",
             width: "100%",
-            padding: "13px",
-            borderRadius: "12px",
+            padding: "9px 12px",
+            borderRadius: "10px",
             border: "none",
-            background: "#0F172A",
-            color: "#0D9488",
+            background: "linear-gradient(90deg, #0D9488, #06B6D4)",
+            color: "#FFFFFF",
             fontWeight: "700",
             cursor: "pointer",
-            fontSize: "15px",
+            fontSize: "12px",
+            boxShadow: "0 3px 10px rgba(13, 148, 136, 0.3)",
+            transition: "transform 0.15s ease",
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.02)")}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
-          ⭐ Upgrade Now
+          ⭐ Unlock Pro Access
         </button>
       </div>
-    </div>
+    </aside>
   );
 }
 
