@@ -424,7 +424,7 @@ function buildLocalReply(query, language, tabMode) {
 /* =========================================================
    MAIN KIRO AI COMPONENT (ChatGPT / Gemini Pro Aesthetic)
 ========================================================= */
-export default function Kiro AIAlexaPro() {
+export default function KiroAlexaPro() {
   const navigate = useNavigate();
   const location = useLocation();
 

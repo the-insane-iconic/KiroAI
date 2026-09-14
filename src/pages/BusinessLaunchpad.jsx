@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useVault } from "../context/VaultContext";
+import { KiroContextBar } from "../components/cards/KiroContext";
 
-// Local storage keys
+// Local storage persistence keys
 const STORAGE_KEY = "kiro_launchpad_data";
 const TASKS_KEY = "kiro_launchpad_tasks";
 
@@ -31,7 +33,7 @@ const CAPITAL_BRACKETS = [
     range: "< ₹10,000",
     desc: "Service, agency, brokering, or mobile-first skills. Zero physical inventory risk.",
     icon: "⚡",
-    badge: "Low Risk · Fast Launch",
+    badge: "Fast Launch · Low Risk",
   },
   {
     id: "seed",
@@ -59,7 +61,7 @@ const CAPITAL_BRACKETS = [
   },
 ];
 
-// Pre-configured curated profitable business recommendations by capital tier
+// Curated profitable business models by capital tier
 const CURATED_BUSINESSES = {
   zero: [
     {
@@ -159,7 +161,7 @@ const CURATED_BUSINESSES = {
       margin: "50%",
       breakevenDays: 50,
       whyWins: "Recurring subscription business model. Once 80 corporate/residential accounts are locked, cashflow is guaranteed.",
-      equipment: ["1000 LPH RO commercial unit", "150 food-grade 20L polycarbonate bubble jars", "Electric delivery cargo tricycle/loader"],
+      equipment: ["1000 LPH RO commercial unit", "150 food-grade 20L polycarbonate bubble jars", "Electric delivery cargo loader"],
       licenses: ["BIS / Water Quality Certification", "FSSAI Registration", "MSME Udyam", "GST Registration"],
     },
     {
@@ -179,13 +181,13 @@ const CURATED_BUSINESSES = {
     {
       id: "e1",
       title: "Multi-Brand Two-Wheeler Quick-Service & Water-Wash Workshop",
-      tagline: "Full oil change, electronic scan, brake service and foam wash with 45-minute guaranteed turnaround.",
+      tagline: "Full oil change, electronic scan, brake service and foam wash with 45-minute turnaround.",
       estimatedStartup: "₹3,80,000",
       monthlyProfit: "₹1,20,000 – ₹2,40,000",
       margin: "45%",
       breakevenDays: 60,
       whyWins: "Authorized bike service centers charge high labor and require 2-day drops. Hyperlocal express centers win customer trust.",
-      equipment: ["Hydraulic bike lift", "High-pressure washer & foam gun", "Air compressor", "Diagnostic scan tool & tool trolley"],
+      equipment: ["Hydraulic bike lift", "High-pressure washer & foam gun", "Air compressor", "Diagnostic scan tool"],
       licenses: ["Trade License", "Pollution Control Board Consent (Green category)", "GST", "MSME Udyam"],
     },
     {
@@ -197,7 +199,7 @@ const CURATED_BUSINESSES = {
       margin: "35%",
       breakevenDays: 65,
       whyWins: "Adulteration fears have skyrocketed demand for live wood-pressed and cold-pressed edible oils at premium prices.",
-      equipment: ["Wooden Ghani / Cold-press oil expeller", "Seed cleaning & roasting sieve", "Stainless steel storage tanks", "Bottling & capping station"],
+      equipment: ["Wooden Ghani / Cold-press oil expeller", "Seed cleaning & roasting sieve", "Stainless steel storage tanks", "Bottling station"],
       licenses: ["FSSAI Manufacturing License", "GST Registration", "Udyam MSME (Subsidized under PMEGP 25-35%)"],
     },
   ],
@@ -205,8 +207,9 @@ const CURATED_BUSINESSES = {
 
 export default function BusinessLaunchpad() {
   const navigate = useNavigate();
+  const { vault } = useVault();
 
-  // Wizard state
+  // Wizard Step
   const [step, setStep] = useState(1);
 
   // Form Data
@@ -221,12 +224,12 @@ export default function BusinessLaunchpad() {
       ideaDescription: "",
       capitalTier: "seed", // zero, seed, growth, enterprise
       approxCapital: "₹35,000",
-      offeringType: "both", // product, service, both
+      offeringType: "both",
       industry: "Food & Cafe / Quick Bites",
-      timeCommitment: "fulltime", // fulltime, parttime
+      timeCommitment: "fulltime",
       city: "Indore",
-      tier: "tier2", // tier1, tier2, rural
-      spaceType: "kiosk", // home, online, kiosk, shop, commercial
+      tier: "tier2",
+      spaceType: "kiosk",
       targetAudience: "local_residents",
       selectedBusinessId: "s1",
       customBusinessTitle: "",
@@ -242,14 +245,13 @@ export default function BusinessLaunchpad() {
     return {};
   });
 
-  // Persist form data
+  // Sync to localStorage
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
     } catch (_) {}
   }, [formData]);
 
-  // Persist tasks
   useEffect(() => {
     try {
       localStorage.setItem(TASKS_KEY, JSON.stringify(completedTasks));
@@ -261,16 +263,22 @@ export default function BusinessLaunchpad() {
   };
 
   const toggleTask = (taskId) => {
-    setCompletedTasks((prev) => {
-      const next = { ...prev, [taskId]: !prev[taskId] };
-      return next;
-    });
+    setCompletedTasks((prev) => ({ ...prev, [taskId]: !prev[taskId] }));
+  };
+
+  // Pre-fill from Vault
+  const handlePrefillVault = () => {
+    if (vault?.profile?.name && !formData.name) {
+      updateField("name", vault.profile.name);
+    }
+    if (vault?.profile?.city) {
+      updateField("city", vault.profile.city);
+    }
   };
 
   // Recommendations calculated based on selected capital bracket
   const recommendedBusinesses = useMemo(() => {
-    const list = CURATED_BUSINESSES[formData.capitalTier] || CURATED_BUSINESSES.seed;
-    return list;
+    return CURATED_BUSINESSES[formData.capitalTier] || CURATED_BUSINESSES.seed;
   }, [formData.capitalTier]);
 
   // Active chosen business object
@@ -286,1473 +294,709 @@ export default function BusinessLaunchpad() {
     return recommendedBusinesses[0] || all[0];
   }, [formData.selectedBusinessId, recommendedBusinesses]);
 
-  // Total tasks count & completion
-  const totalTasksCount = 18; // 6 tasks per 30-day phase
+  // Task count and progress
+  const totalTasksCount = 18;
   const completedTasksCount = Object.values(completedTasks).filter(Boolean).length;
   const progressPercentage = Math.round((completedTasksCount / totalTasksCount) * 100);
 
+  const phases = [
+    {
+      phaseNumber: 1,
+      name: "Days 1–30: Foundation & Validation",
+      badge: "PHASE 01 · ZERO RISK VALIDATION",
+      desc: "Prove market demand, secure registrations & build your supplier pipeline before spending on fixed assets.",
+      color: "var(--accent)",
+      tasks: [
+        { id: "p1_1", days: "Days 1–5", title: "Hyper-Local Competitor & Footfall Audit", desc: "Spend 2 hours during peak morning & evening times counting walk-ins at 3 nearby competitors." },
+        { id: "p1_2", days: "Days 6–10", title: "Zero-Cost MSME Udyam & Basic FSSAI Registration", desc: "Register your entity free on udyamregistration.gov.in using Aadhaar & PAN in 15 minutes." },
+        { id: "p1_3", days: "Days 11–15", title: "Direct Wholesale Supplier & Margin Negotiation", desc: "Get minimum 3 supplier quotes for core ingredients/equipment. Negotiate 30-day payment terms." },
+        { id: "p1_4", days: "Days 16–20", title: "50-Customer Pre-Launch Taste / Service Test", desc: "Sample your product or offer initial free trial service to 50 local residents to gather honest feedback." },
+        { id: "p1_5", days: "Days 21–25", title: "Zero-Balance Current Account & Merchant UPI Setup", desc: "Open an online current account and configure QR payment soundboxes for instant instant settlements." },
+        { id: "p1_6", days: "Days 26–30", title: "Final Unit Economics & Breakeven Calibration", desc: "Lock down your exact daily operating cost and break-even ticket volume target." },
+      ],
+    },
+    {
+      phaseNumber: 2,
+      name: "Days 31–60: Space, Equipment & Operations",
+      badge: "PHASE 02 · SETUP & SOURCING",
+      desc: "Install core tools, finalize location lease, setup digital presence, and test operational workflow.",
+      color: "var(--violet)",
+      tasks: [
+        { id: "p2_1", days: "Days 31–38", title: "Commercial Space Lease Agreement & Stamp Duty", desc: "Secure the counter/kiosk/space with maximum 2-month refundable security deposit." },
+        { id: "p2_2", days: "Days 39–45", title: "Core Machinery & Equipment Procurement", desc: "Procure inspected new or refurbished equipment with minimum 6-month warranty." },
+        { id: "p2_3", days: "Days 46–50", title: "Google Business Profile & WhatsApp Catalog Setup", desc: "Create a verified Google Maps pin with HD photos and build a WhatsApp Business product catalog." },
+        { id: "p2_4", days: "Days 51–55", title: "Branded Signage & Packaging Delivery", desc: "Print standee boards, menu flyers, and eco-friendly branded packaging materials." },
+        { id: "p2_5", days: "Days 56–58", title: "Government Subsidy / Mudra Loan Application", desc: "Submit your business plan on JanSamarth portal or local bank branch for interest subvention." },
+        { id: "p2_6", days: "Days 59–60", title: "Dry-Run Simulation & Speed-of-Service Audit", desc: "Execute a full mock-day of 50 orders with friends to eliminate operational bottlenecks." },
+      ],
+    },
+    {
+      phaseNumber: 3,
+      name: "Days 61–90: Grand Launch & First 100 Paying Customers",
+      badge: "PHASE 03 · REVENUE ENGINE",
+      desc: "Drive hyper-local footfall, launch inaugural referral campaigns, and achieve weekly profitability.",
+      color: "var(--success)",
+      tasks: [
+        { id: "p3_1", days: "Days 61–65", title: "Launch Day 1+1 Special & Community Inauguration", desc: "Offer opening day specials with local society WhatsApp groups and neighboring shopkeepers." },
+        { id: "p3_2", days: "Days 66–70", title: "Local Society Flyer Distribution & WhatsApp Outreach", desc: "Distribute 500 targeted flyers at apartment security gates and morning walking parks." },
+        { id: "p3_3", days: "Days 71–75", title: "Google Maps 5-Star Review Incentive System", desc: "Reward customers with a ₹10 discount or free add-on for authentic Google reviews." },
+        { id: "p3_4", days: "Days 76–80", title: "Corporate & Neighborhood Monthly Subscription Pass", desc: "Lock 20 recurring weekly/monthly subscribers for guaranteed baseline cashflow." },
+        { id: "p3_5", days: "Days 81–85", title: "First Month Profit-and-Loss Audit & Cost Trimming", desc: "Review real margins vs estimates; eliminate slow-moving items and double down on bestsellers." },
+        { id: "p3_6", days: "Days 86–90", title: "Expansion Plan & Reinvestment Strategy", desc: "Allocate 30% of month-1 net profit into working capital buffer and second-counter exploration." },
+      ],
+    },
+  ];
+
   return (
-    <div style={styles.page}>
+    <div className="page-container" style={{ maxWidth: 1200, margin: "0 auto", paddingBottom: 60 }}>
+      {/* Context Bar */}
+      <KiroContextBar
+        pageName="90-Day Launchpad"
+        seedQuery={`Help me review and optimize my 90-day launch roadmap for ${activeBusiness.title} with a capital bracket of ${formData.approxCapital}.`}
+      />
 
-      {/* Main Launchpad Container */}
-      <div style={styles.container}>
-        {/* Hero Section */}
-        <section style={styles.heroSection}>
-          <div style={styles.heroTag}>
-            <span style={styles.pulseDot}></span>
-            90-Day Business Engine · Zero to Profit
+      {/* Hero Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap", margin: "16px 0 24px 0" }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <span className="badge badge-ai">🚀 90-DAY LAUNCH ENGINE</span>
+            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Zero to Profit Blueprint</span>
           </div>
-          <h1 style={styles.heroTitle}>Build Your 90-Day Launch Plan</h1>
-          <p style={styles.heroSub}>
-            Don't have a business idea yet? Or only have capital? We analyze your capital, location, and skills to recommend the highest-profit business and map out an exact day-by-day roadmap to first profit.
+          <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0, color: "var(--text-h)", fontFamily: "var(--font-display)" }}>
+            Build Your 90-Day <span className="gradient-text">Launch Plan</span>
+          </h1>
+          <p style={{ margin: "6px 0 0 0", fontSize: 13.5, color: "var(--text-secondary)", maxWidth: 680 }}>
+            Don't have a business idea yet? Or have capital ready? We analyze your capital, location, and skills to calculate unit economics and map out a day-by-day roadmap to first profit.
           </p>
+        </div>
 
-          {/* Quick value badges */}
-          <div style={styles.badgeRow}>
-            <span style={styles.pillBadge}>⚡ Zero or Seed Capital Ready</span>
-            <span style={styles.pillBadge}>🏛️ Mudra & PMEGP Subsidy Match</span>
-            <span style={styles.pillBadge}>📈 Break-Even & Unit Economics</span>
-            <span style={styles.pillBadge}>🗓️ Daily 90-Day Checklist</span>
-          </div>
-        </section>
+        {/* Quick Badges & Nav */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button
+            onClick={() => navigate("/business")}
+            className="btn btn-secondary btn-sm"
+            style={{ borderColor: "rgba(99,102,241,0.3)", color: "var(--accent)", display: "flex", alignItems: "center", gap: 6 }}
+          >
+            <span>📍</span>
+            <span>Hyper-Local Advisor</span>
+          </button>
+          <button
+            onClick={() => navigate("/loan")}
+            className="btn btn-secondary btn-sm"
+            style={{ borderColor: "rgba(6,182,212,0.3)", color: "var(--cyan)", display: "flex", alignItems: "center", gap: 6 }}
+          >
+            <span>🏛️</span>
+            <span>Govt Loans & Subsidies</span>
+          </button>
+        </div>
+      </div>
 
-        {/* 5-Step Stepper Progress Bar */}
-        <div style={styles.stepperWrapper}>
-          <div style={styles.stepperTrack}>
+      {/* 5-Step Stepper Progress Bar */}
+      <div className="card glass-card" style={{ padding: "16px 20px", marginBottom: 24, borderRadius: "var(--radius-lg)" }}>
+        <div style={{ position: "relative", marginBottom: 12 }}>
+          {/* Track */}
+          <div style={{ height: 4, background: "var(--border)", borderRadius: 999, width: "100%" }}>
             <div
               style={{
-                ...styles.stepperFill,
+                height: "100%",
+                background: "linear-gradient(90deg, var(--accent), var(--violet))",
+                borderRadius: 999,
                 width: `${((step - 1) / 4) * 100}%`,
+                transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
             />
           </div>
-
-          <div style={styles.stepperButtons}>
-            {[
-              { num: 1, label: "You & Capital", short: "Capital" },
-              { num: 2, label: "Location & Space", short: "Location" },
-              { num: 3, label: "AI Discovery", short: "Opportunity" },
-              { num: 4, label: "Unit Economics", short: "Economics" },
-              { num: 5, label: "90-Day Blueprint", short: "Roadmap" },
-            ].map((s) => {
-              const isActive = step === s.num;
-              const isDone = step > s.num;
-              return (
-                <button
-                  key={s.num}
-                  onClick={() => setStep(s.num)}
-                  style={{
-                    ...styles.stepBtn,
-                    color: isActive ? "var(--text-h)" : isDone ? "#10B981" : "var(--muted)",
-                  }}
-                >
-                  <div
-                    style={{
-                      ...styles.stepCircle,
-                      background: isDone
-                        ? "#10B981"
-                        : isActive
-                        ? "linear-gradient(135deg, #8B5CF6, #6366F1)"
-                        : "var(--surface)",
-                      color: isDone || isActive ? "#FFFFFF" : "var(--muted)",
-                      borderColor: isActive ? "#8B5CF6" : isDone ? "#10B981" : "var(--border)",
-                      boxShadow: isActive ? "0 0 12px rgba(139, 92, 246, 0.45)" : "none",
-                    }}
-                  >
-                    {isDone ? "✓" : s.num}
-                  </div>
-                  <span style={styles.stepLabel}>{s.label}</span>
-                </button>
-              );
-            })}
-          </div>
         </div>
 
-        {/* Wizard Form Card */}
-        <div style={styles.card}>
-          {/* ================= STEP 1: YOU & CAPITAL ================= */}
-          {step === 1 && (
-            <div style={styles.stepContent}>
-              <div style={styles.stepHeader}>
-                <div style={styles.stepTag}>STEP 01 OF 05</div>
-                <h2 style={styles.stepTitle}>Your Starting Capital & Background</h2>
-                <p style={styles.stepDesc}>
-                  Whether you have capital looking for an idea, or zero capital looking for a fast-start service, this determines your highest-margin opportunities.
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>
+          {[
+            { num: 1, label: "You & Capital", short: "Capital" },
+            { num: 2, label: "Location & Space", short: "Location" },
+            { num: 3, label: "AI Discovery", short: "Match" },
+            { num: 4, label: "Unit Economics", short: "Economics" },
+            { num: 5, label: "90-Day Blueprint", short: "Roadmap" },
+          ].map((s) => {
+            const isActive = step === s.num;
+            const isDone = step > s.num;
+            return (
+              <button
+                key={s.num}
+                onClick={() => setStep(s.num)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "4px 0",
+                }}
+              >
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    background: isDone
+                      ? "var(--success)"
+                      : isActive
+                      ? "linear-gradient(135deg, var(--accent), var(--violet))"
+                      : "var(--surface-raised)",
+                    color: isDone || isActive ? "#ffffff" : "var(--text-muted)",
+                    border: `2px solid ${isActive ? "var(--accent)" : isDone ? "var(--success)" : "var(--border)"}`,
+                    boxShadow: isActive ? "var(--glow-accent)" : "none",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  {isDone ? "✓" : s.num}
+                </div>
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    fontWeight: isActive ? 700 : 500,
+                    color: isActive ? "var(--text-h)" : isDone ? "var(--success)" : "var(--text-muted)",
+                    textAlign: "center",
+                  }}
+                >
+                  {s.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Main Wizard Form Body */}
+      <div className="card" style={{ padding: 26, borderRadius: "var(--radius-lg)", marginBottom: 24 }}>
+        {/* ================= STEP 1: YOU & CAPITAL ================= */}
+        {step === 1 && (
+          <div style={{ animation: "fadeIn 0.2s ease-out" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
+              <div>
+                <span className="badge badge-ai" style={{ marginBottom: 6 }}>STEP 01 OF 05</span>
+                <h2 style={{ fontSize: 20, fontWeight: 800, margin: "4px 0 2px 0", color: "var(--text-h)" }}>
+                  Starting Capital & Founder Profile
+                </h2>
+                <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>
+                  Whether starting with zero capital or seed funds, this unlocks the highest-margin models for you.
                 </p>
               </div>
+              {vault?.profile?.city && (
+                <button
+                  type="button"
+                  onClick={handlePrefillVault}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 5 }}
+                >
+                  <span>⚡</span> Pre-fill from Vault
+                </button>
+              )}
+            </div>
 
-              <div style={styles.formGrid}>
-                {/* Name */}
-                <div style={styles.fieldFull}>
-                  <label style={styles.label}>
-                    Your Name or Founder Handle <span style={{ color: "#EF4444" }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Rahul Sharma"
-                    value={formData.name}
-                    onChange={(e) => updateField("name", e.target.value)}
-                    style={styles.input}
-                  />
+            <div style={{ display: "grid", gap: 18 }}>
+              {/* Founder Handle */}
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--text-secondary)", marginBottom: 6 }}>
+                  Founder Name / Handle
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Rahul Sharma"
+                  value={formData.name}
+                  onChange={(e) => updateField("name", e.target.value)}
+                  className="input"
+                  style={{ height: 42, fontSize: 13 }}
+                />
+              </div>
+
+              {/* Has Idea or Needs Suggestions */}
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--text-secondary)", marginBottom: 8 }}>
+                  Do you already have a specific business idea?
+                </label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => updateField("hasIdea", "no")}
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: 12,
+                      border: `1.5px solid ${formData.hasIdea === "no" ? "var(--accent)" : "var(--border)"}`,
+                      background: formData.hasIdea === "no" ? "var(--accent-soft)" : "var(--surface)",
+                      textAlign: "left",
+                      cursor: "pointer",
+                      display: "flex",
+                      gap: 12,
+                      alignItems: "center",
+                    }}
+                  >
+                    <span style={{ fontSize: 24 }}>💡</span>
+                    <div>
+                      <strong style={{ display: "block", fontSize: 13, color: "var(--text-h)" }}>
+                        No Idea — Discover High-ROI Businesses
+                      </strong>
+                      <small style={{ color: "var(--text-secondary)", fontSize: 11 }}>
+                        Match me with profitable businesses based on my capital.
+                      </small>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => updateField("hasIdea", "yes")}
+                    style={{
+                      padding: "14px 16px",
+                      borderRadius: 12,
+                      border: `1.5px solid ${formData.hasIdea === "yes" ? "var(--accent)" : "var(--border)"}`,
+                      background: formData.hasIdea === "yes" ? "var(--accent-soft)" : "var(--surface)",
+                      textAlign: "left",
+                      cursor: "pointer",
+                      display: "flex",
+                      gap: 12,
+                      alignItems: "center",
+                    }}
+                  >
+                    <span style={{ fontSize: 24 }}>🎯</span>
+                    <div>
+                      <strong style={{ display: "block", fontSize: 13, color: "var(--text-h)" }}>
+                        I Have A Specific Idea
+                      </strong>
+                      <small style={{ color: "var(--text-secondary)", fontSize: 11 }}>
+                        I have a concept and need the 90-day profit roadmap.
+                      </small>
+                    </div>
+                  </button>
                 </div>
+              </div>
 
-                {/* Do you have an idea? */}
-                <div style={styles.fieldFull}>
-                  <label style={styles.label}>
-                    Do you already have a specific business idea? <span style={{ color: "#EF4444" }}>*</span>
-                  </label>
-                  <div style={styles.choiceGrid2}>
-                    <button
-                      type="button"
-                      onClick={() => updateField("hasIdea", "no")}
-                      style={{
-                        ...styles.choiceCard,
-                        borderColor: formData.hasIdea === "no" ? "#8B5CF6" : "var(--border)",
-                        background: formData.hasIdea === "no" ? "rgba(139, 92, 246, 0.12)" : "var(--surface-soft)",
-                      }}
-                    >
-                      <span style={{ fontSize: "22px" }}>🪙</span>
-                      <div>
-                        <strong style={{ display: "block", color: "var(--text-h)", fontSize: "13px" }}>
-                          No Idea — Suggest Profitable Businesses
-                        </strong>
-                        <small style={{ color: "var(--muted)", fontSize: "10.5px" }}>
-                          I have capital or skills; match me with high-ROI businesses in my city.
-                        </small>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => updateField("hasIdea", "yes")}
-                      style={{
-                        ...styles.choiceCard,
-                        borderColor: formData.hasIdea === "yes" ? "#8B5CF6" : "var(--border)",
-                        background: formData.hasIdea === "yes" ? "rgba(139, 92, 246, 0.12)" : "var(--surface-soft)",
-                      }}
-                    >
-                      <span style={{ fontSize: "22px" }}>💡</span>
-                      <div>
-                        <strong style={{ display: "block", color: "var(--text-h)", fontSize: "13px" }}>
-                          I Have An Idea
-                        </strong>
-                        <small style={{ color: "var(--muted)", fontSize: "10.5px" }}>
-                          I have a rough concept and need the step-by-step 90-day profit plan.
-                        </small>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                {/* If has idea, describe it */}
-                {formData.hasIdea === "yes" && (
-                  <div style={styles.fieldFull}>
-                    <label style={styles.label}>
-                      Describe Your Idea & Target Customer
-                    </label>
-                    <textarea
-                      rows={3}
-                      placeholder="What do you plan to sell? Who is your customer? What makes you unique?"
-                      value={formData.ideaDescription}
-                      onChange={(e) => updateField("ideaDescription", e.target.value)}
-                      style={styles.textarea}
-                    />
-                  </div>
-                )}
-
-                {/* Capital Brackets Selector */}
-                <div style={styles.fieldFull}>
-                  <label style={styles.label}>
-                    Available Investment Capital <span style={{ color: "#EF4444" }}>*</span>
-                  </label>
-                  <div style={styles.capitalGrid}>
-                    {CAPITAL_BRACKETS.map((cap) => {
-                      const isSel = formData.capitalTier === cap.id;
-                      return (
-                        <div
-                          key={cap.id}
-                          onClick={() => {
-                            updateField("capitalTier", cap.id);
-                            // Auto select first business in that tier
-                            const tierList = CURATED_BUSINESSES[cap.id] || [];
-                            if (tierList[0]) updateField("selectedBusinessId", tierList[0].id);
-                          }}
-                          style={{
-                            ...styles.capCard,
-                            borderColor: isSel ? "#8B5CF6" : "var(--border)",
-                            background: isSel ? "rgba(139, 92, 246, 0.14)" : "var(--surface-soft)",
-                          }}
-                        >
-                          <div style={styles.capHeader}>
-                            <span style={{ fontSize: "24px" }}>{cap.icon}</span>
-                            <span style={{ ...styles.capBadge, background: isSel ? "#8B5CF6" : "var(--border)", color: "#fff" }}>
-                              {cap.range}
-                            </span>
-                          </div>
-                          <strong style={{ fontSize: "13px", color: "var(--text-h)", marginTop: "8px", display: "block" }}>
-                            {cap.label}
-                          </strong>
-                          <p style={{ fontSize: "11px", color: "var(--muted)", margin: "4px 0 0 0", lineHeight: 1.4 }}>
-                            {cap.desc}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Product vs Service */}
-                <div style={styles.fieldHalf}>
-                  <label style={styles.label}>Product, Service, or Hybrid?</label>
-                  <div style={styles.buttonGroup3}>
-                    {["product", "service", "both"].map((opt) => (
+              {/* Capital Bracket Grid */}
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--text-secondary)", marginBottom: 8 }}>
+                  Select Available Capital Bracket
+                </label>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
+                  {CAPITAL_BRACKETS.map((tier) => {
+                    const isSelected = formData.capitalTier === tier.id;
+                    return (
                       <button
-                        key={opt}
+                        key={tier.id}
                         type="button"
-                        onClick={() => updateField("offeringType", opt)}
+                        onClick={() => updateField("capitalTier", tier.id)}
                         style={{
-                          ...styles.segmentedBtn,
-                          background: formData.offeringType === opt ? "linear-gradient(135deg, #8B5CF6, #6366F1)" : "var(--surface-soft)",
-                          color: formData.offeringType === opt ? "#FFFFFF" : "var(--muted)",
-                          borderColor: formData.offeringType === opt ? "#8B5CF6" : "var(--border)",
+                          padding: 16,
+                          borderRadius: 12,
+                          border: `1.5px solid ${isSelected ? "var(--accent)" : "var(--border)"}`,
+                          background: isSelected ? "var(--accent-soft)" : "var(--surface-raised)",
+                          textAlign: "left",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
                         }}
                       >
-                        {opt.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Industry Interest */}
-                <div style={styles.fieldHalf}>
-                  <label style={styles.label}>Industry / Domain of Interest</label>
-                  <select
-                    value={formData.industry}
-                    onChange={(e) => updateField("industry", e.target.value)}
-                    style={styles.select}
-                  >
-                    {INDUSTRIES.map((ind) => (
-                      <option key={ind} value={ind}>
-                        {ind}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Time Commitment */}
-                <div style={styles.fieldFull}>
-                  <label style={styles.label}>Weekly Time Commitment</label>
-                  <div style={styles.choiceGrid2}>
-                    <button
-                      type="button"
-                      onClick={() => updateField("timeCommitment", "fulltime")}
-                      style={{
-                        ...styles.choiceCardMini,
-                        borderColor: formData.timeCommitment === "fulltime" ? "#8B5CF6" : "var(--border)",
-                        background: formData.timeCommitment === "fulltime" ? "rgba(139, 92, 246, 0.12)" : "var(--surface-soft)",
-                      }}
-                    >
-                      <span>💼 Full-Time Founder (40+ hrs/week)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => updateField("timeCommitment", "parttime")}
-                      style={{
-                        ...styles.choiceCardMini,
-                        borderColor: formData.timeCommitment === "parttime" ? "#8B5CF6" : "var(--border)",
-                        background: formData.timeCommitment === "parttime" ? "rgba(139, 92, 246, 0.12)" : "var(--surface-soft)",
-                      }}
-                    >
-                      <span>🌙 Part-Time / Weekend Hustle (15-20 hrs)</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Wizard Footer Navigation */}
-              <div style={styles.wizardFooter}>
-                <div></div>
-                <button
-                  onClick={() => setStep(2)}
-                  style={styles.primaryNextBtn}
-                >
-                  Continue to Location & Space →
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ================= STEP 2: LOCATION & SPACE ================= */}
-          {step === 2 && (
-            <div style={styles.stepContent}>
-              <div style={styles.stepHeader}>
-                <div style={styles.stepTag}>STEP 02 OF 05</div>
-                <h2 style={styles.stepTitle}>Location, Workspace & Target Market</h2>
-                <p style={styles.stepDesc}>
-                  Rent is the #1 killer of early businesses. Choosing whether to start home-based, cloud-first, or in a kiosk drastically alters your break-even point.
-                </p>
-              </div>
-
-              <div style={styles.formGrid}>
-                {/* City */}
-                <div style={styles.fieldHalf}>
-                  <label style={styles.label}>Your City / District</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Ranchi, Indore, Lucknow, Pune"
-                    value={formData.city}
-                    onChange={(e) => updateField("city", e.target.value)}
-                    style={styles.input}
-                  />
-                </div>
-
-                {/* Tier */}
-                <div style={styles.fieldHalf}>
-                  <label style={styles.label}>Location Geography Tier</label>
-                  <select
-                    value={formData.tier}
-                    onChange={(e) => updateField("tier", e.target.value)}
-                    style={styles.select}
-                  >
-                    <option value="tier1">Tier 1 Metro (High purchasing power, high rent)</option>
-                    <option value="tier2">Tier 2 / 3 City (Rapid growth, moderate rent)</option>
-                    <option value="rural">Semi-Urban Town / Rural Village (Low competition, low rent)</option>
-                  </select>
-                </div>
-
-                {/* Space Type */}
-                <div style={styles.fieldFull}>
-                  <label style={styles.label}>Proposed Workspace / Premises</label>
-                  <div style={styles.spaceGrid}>
-                    {[
-                      { id: "home", icon: "🏠", label: "Home / Garage Based", rent: "₹0 / mo", desc: "No shop lease. Perfect for delivery, packaging or digital services." },
-                      { id: "online", icon: "🌐", label: "Online & WhatsApp First", rent: "₹0 / mo", desc: "Zero physical retail presence. All orders through phone & social." },
-                      { id: "kiosk", icon: "🎪", label: "Street Booth / Kiosk", rent: "₹2,000 – ₹6,000 / mo", desc: "High footfall street corner with small municipal permit." },
-                      { id: "shop", icon: "🏪", label: "High Street Rented Shop", rent: "₹12,000 – ₹25,000 / mo", desc: "Physical retail walk-ins and prominent exterior branding." },
-                    ].map((sp) => {
-                      const isSel = formData.spaceType === sp.id;
-                      return (
-                        <div
-                          key={sp.id}
-                          onClick={() => updateField("spaceType", sp.id)}
-                          style={{
-                            ...styles.spaceCard,
-                            borderColor: isSel ? "#8B5CF6" : "var(--border)",
-                            background: isSel ? "rgba(139, 92, 246, 0.12)" : "var(--surface-soft)",
-                          }}
-                        >
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: "24px" }}>{sp.icon}</span>
-                            <span style={{ fontSize: "10px", fontWeight: "700", color: "#10B981" }}>{sp.rent}</span>
-                          </div>
-                          <strong style={{ fontSize: "12.5px", color: "var(--text-h)", marginTop: "8px", display: "block" }}>
-                            {sp.label}
-                          </strong>
-                          <p style={{ fontSize: "10.5px", color: "var(--muted)", margin: "4px 0 0 0", lineHeight: 1.4 }}>
-                            {sp.desc}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Target Audience */}
-                <div style={styles.fieldFull}>
-                  <label style={styles.label}>Primary Customer Segment</label>
-                  <select
-                    value={formData.targetAudience}
-                    onChange={(e) => updateField("targetAudience", e.target.value)}
-                    style={styles.select}
-                  >
-                    <option value="local_residents">Local residential families & housing societies</option>
-                    <option value="students">College students & young professionals</option>
-                    <option value="b2b">Local businesses, offices & retailers (B2B wholesale)</option>
-                    <option value="online_nationwide">Online customers across India</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Wizard Footer Navigation */}
-              <div style={styles.wizardFooter}>
-                <button
-                  onClick={() => setStep(1)}
-                  style={styles.secondaryBackBtn}
-                >
-                  ← Back to Capital
-                </button>
-                <button
-                  onClick={() => setStep(3)}
-                  style={styles.primaryNextBtn}
-                >
-                  Discover AI Opportunities →
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ================= STEP 3: AI DISCOVERY ================= */}
-          {step === 3 && (
-            <div style={styles.stepContent}>
-              <div style={styles.stepHeader}>
-                <div style={styles.stepTag}>STEP 03 OF 05</div>
-                <h2 style={styles.stepTitle}>AI Business Discovery & Competitive Edge</h2>
-                <p style={styles.stepDesc}>
-                  Based on your <strong>{CAPITAL_BRACKETS.find((c) => c.id === formData.capitalTier)?.label}</strong> in <strong>{formData.city}</strong>, we've identified the top 3 highest-margin business models. Select one to proceed to the 90-day plan.
-                </p>
-              </div>
-
-              {/* Opportunities List */}
-              <div style={styles.opportunityList}>
-                {recommendedBusinesses.map((biz) => {
-                  const isSelected = formData.selectedBusinessId === biz.id;
-                  return (
-                    <div
-                      key={biz.id}
-                      onClick={() => updateField("selectedBusinessId", biz.id)}
-                      style={{
-                        ...styles.opportunityCard,
-                        borderColor: isSelected ? "#8B5CF6" : "var(--border)",
-                        background: isSelected ? "rgba(139, 92, 246, 0.08)" : "var(--surface-soft)",
-                        boxShadow: isSelected ? "0 0 16px rgba(139, 92, 246, 0.2)" : "none",
-                      }}
-                    >
-                      <div style={styles.opportunityHeader}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                            <h3 style={{ margin: 0, fontSize: "15px", color: "var(--text-h)" }}>
-                              {biz.title}
-                            </h3>
-                            {isSelected && (
-                              <span style={styles.selectedPill}>★ SELECTED TO LAUNCH</span>
-                            )}
-                          </div>
-                          <p style={{ margin: "4px 0 0 0", fontSize: "11.5px", color: "var(--muted)" }}>
-                            {biz.tagline}
-                          </p>
-                        </div>
-                        <input
-                          type="radio"
-                          name="selectedBiz"
-                          checked={isSelected}
-                          onChange={() => updateField("selectedBusinessId", biz.id)}
-                          style={{ width: "18px", height: "18px", accentColor: "#8B5CF6", cursor: "pointer" }}
-                        />
-                      </div>
-
-                      {/* Metrics bar */}
-                      <div style={styles.metricRow}>
-                        <div style={styles.metricBox}>
-                          <span style={styles.metricLabel}>Startup Capex</span>
-                          <strong style={styles.metricVal}>{biz.estimatedStartup}</strong>
-                        </div>
-                        <div style={styles.metricBox}>
-                          <span style={styles.metricLabel}>Net Monthly Profit</span>
-                          <strong style={{ ...styles.metricVal, color: "#10B981" }}>{biz.monthlyProfit}</strong>
-                        </div>
-                        <div style={styles.metricBox}>
-                          <span style={styles.metricLabel}>Gross Margin</span>
-                          <strong style={{ ...styles.metricVal, color: "#38BDF8" }}>{biz.margin}</strong>
-                        </div>
-                        <div style={styles.metricBox}>
-                          <span style={styles.metricLabel}>Days to Break-Even</span>
-                          <strong style={{ ...styles.metricVal, color: "#F59E0B" }}>{biz.breakevenDays} Days</strong>
-                        </div>
-                      </div>
-
-                      {/* Why this wins */}
-                      <div style={styles.whyWinsBox}>
-                        <strong style={{ fontSize: "11px", color: "var(--text-h)" }}>🎯 Why It Wins Locally:</strong>
-                        <p style={{ fontSize: "11px", color: "var(--text)", margin: "3px 0 0 0", lineHeight: 1.4 }}>
-                          {biz.whyWins}
-                        </p>
-                      </div>
-
-                      {/* Equipment preview */}
-                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "10px" }}>
-                        {biz.equipment.map((eq, i) => (
-                          <span key={i} style={styles.equipmentChip}>
-                            📦 {eq}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                          <span style={{ fontSize: 22 }}>{tier.icon}</span>
+                          <span
+                            className="badge"
+                            style={{
+                              background: isSelected ? "var(--accent)" : "var(--border)",
+                              color: isSelected ? "#fff" : "var(--text-secondary)",
+                              fontSize: 10,
+                            }}
+                          >
+                            {tier.range}
                           </span>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Wizard Footer Navigation */}
-              <div style={styles.wizardFooter}>
-                <button
-                  onClick={() => setStep(2)}
-                  style={styles.secondaryBackBtn}
-                >
-                  ← Back to Location
-                </button>
-                <button
-                  onClick={() => setStep(4)}
-                  style={styles.primaryNextBtn}
-                >
-                  Review Unit Economics & Subsidies →
-                </button>
+                        </div>
+                        <strong style={{ display: "block", fontSize: 13.5, color: "var(--text-h)", marginBottom: 4 }}>
+                          {tier.label}
+                        </strong>
+                        <p style={{ margin: 0, fontSize: 11.5, color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                          {tier.desc}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* ================= STEP 4: UNIT ECONOMICS & LICENSES ================= */}
-          {step === 4 && (
-            <div style={styles.stepContent}>
-              <div style={styles.stepHeader}>
-                <div style={styles.stepTag}>STEP 04 OF 05</div>
-                <h2 style={styles.stepTitle}>Unit Economics, Licenses & Govt Subsidies</h2>
-                <p style={styles.stepDesc}>
-                  Clear math prevents business failure. Here is your initial cashflow requirement, break-even target, and free government schemes.
-                </p>
+        {/* ================= STEP 2: LOCATION & SPACE ================= */}
+        {step === 2 && (
+          <div style={{ animation: "fadeIn 0.2s ease-out" }}>
+            <span className="badge badge-ai" style={{ marginBottom: 6 }}>STEP 02 OF 05</span>
+            <h2 style={{ fontSize: 20, fontWeight: 800, margin: "4px 0 2px 0", color: "var(--text-h)" }}>
+              Location & Commercial Space Profile
+            </h2>
+            <p style={{ margin: "0 0 20px 0", fontSize: 13, color: "var(--text-secondary)" }}>
+              Hyper-local territory parameters determine footfall velocity and real estate overheads.
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 18 }}>
+              {/* City */}
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--text-secondary)", marginBottom: 6 }}>
+                  Target City / District
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Indore, MP"
+                  value={formData.city}
+                  onChange={(e) => updateField("city", e.target.value)}
+                  className="input"
+                  style={{ height: 42, fontSize: 13 }}
+                />
               </div>
 
-              {/* Selected Plan Summary Banner */}
-              <div style={styles.highlightBanner}>
-                <div>
-                  <small style={{ color: "#A78BFA", fontWeight: "700", textTransform: "uppercase", fontSize: "10px", letterSpacing: "1px" }}>
-                    Selected Venture
-                  </small>
-                  <h3 style={{ margin: "2px 0 0 0", fontSize: "16px", color: "#FFFFFF" }}>
-                    {activeBusiness.title}
-                  </h3>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <span style={{ fontSize: "11px", color: "#94A3B8" }}>Target Margin</span>
-                  <div style={{ fontSize: "18px", fontWeight: "800", color: "#10B981" }}>
-                    {activeBusiness.margin} Net
-                  </div>
-                </div>
-              </div>
-
-              <div style={styles.grid2Col}>
-                {/* Left: Financial Math */}
-                <div style={styles.subCard}>
-                  <h4 style={styles.subCardTitle}>💰 Setup vs Operational Capital</h4>
-                  <div style={styles.financeList}>
-                    <div style={styles.financeItem}>
-                      <span>Core Tools & Equipment</span>
-                      <strong>{activeBusiness.estimatedStartup}</strong>
-                    </div>
-                    <div style={styles.financeItem}>
-                      <span>First Batch Inventory / Raw Materials</span>
-                      <strong>₹5,000 – ₹15,000</strong>
-                    </div>
-                    <div style={styles.financeItem}>
-                      <span>Signage, QR Codes & WhatsApp Business</span>
-                      <strong>₹1,000 – ₹2,500</strong>
-                    </div>
-                    <div style={styles.financeItem}>
-                      <span>Safety Buffer Reserve</span>
-                      <strong>₹5,000</strong>
-                    </div>
-                    <div style={{ ...styles.financeItem, borderTop: "1px solid var(--border)", paddingTop: "8px" }}>
-                      <b style={{ color: "var(--text-h)" }}>Break-Even Target Volume</b>
-                      <b style={{ color: "#10B981" }}>12 – 18 orders / day</b>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right: Govt Schemes & Free Registrations */}
-                <div style={styles.subCard}>
-                  <h4 style={styles.subCardTitle}>🏛️ Free Govt Schemes & Subsidies</h4>
-                  <div style={styles.schemeList}>
-                    <div style={styles.schemeItem}>
-                      <div style={styles.schemeIcon}>📜</div>
-                      <div>
-                        <strong style={{ fontSize: "12px", color: "var(--text-h)" }}>
-                          MSME Udyam Registration (100% Free)
-                        </strong>
-                        <p style={{ fontSize: "10.5px", color: "var(--muted)", margin: "2px 0 0 0" }}>
-                          Get priority sector lending, bank account opening without fee, and credit subsidies.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div style={styles.schemeItem}>
-                      <div style={styles.schemeIcon}>💳</div>
-                      <div>
-                        <strong style={{ fontSize: "12px", color: "var(--text-h)" }}>
-                          PM MUDRA Yojana (Up to ₹50k to ₹10 Lakhs)
-                        </strong>
-                        <p style={{ fontSize: "10.5px", color: "var(--muted)", margin: "2px 0 0 0" }}>
-                          Collateral-free micro loans from PSU banks (Shishu & Kishor brackets).
-                        </p>
-                      </div>
-                    </div>
-
-                    <div style={styles.schemeItem}>
-                      <div style={styles.schemeIcon}>🏷️</div>
-                      <div>
-                        <strong style={{ fontSize: "12px", color: "var(--text-h)" }}>
-                          PMEGP Subsidy (15% to 35% Govt Grant)
-                        </strong>
-                        <p style={{ fontSize: "10.5px", color: "var(--muted)", margin: "2px 0 0 0" }}>
-                          Margin money subsidy on manufacturing and service projects funded via KVIC.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Wizard Footer Navigation */}
-              <div style={styles.wizardFooter}>
-                <button
-                  onClick={() => setStep(3)}
-                  style={styles.secondaryBackBtn}
+              {/* City Tier */}
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--text-secondary)", marginBottom: 6 }}>
+                  City / Market Tier
+                </label>
+                <select
+                  value={formData.tier}
+                  onChange={(e) => updateField("tier", e.target.value)}
+                  className="input"
+                  style={{ height: 42, fontSize: 13 }}
                 >
-                  ← Back to Discovery
-                </button>
-                <button
-                  onClick={() => setStep(5)}
-                  style={styles.primaryNextBtn}
+                  <option value="tier1">Tier 1 Metro (High Rent, Massive Demand)</option>
+                  <option value="tier2">Tier 2/3 City (Balanced Rent, High Growth)</option>
+                  <option value="rural">Township / Semi-Rural (Low Rent, Strong Trust)</option>
+                </select>
+              </div>
+
+              {/* Space Type */}
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--text-secondary)", marginBottom: 6 }}>
+                  Commercial Space Strategy
+                </label>
+                <select
+                  value={formData.spaceType}
+                  onChange={(e) => updateField("spaceType", e.target.value)}
+                  className="input"
+                  style={{ height: 42, fontSize: 13 }}
                 >
-                  Generate 90-Day Profit Roadmap →
-                </button>
+                  <option value="home">Home-Based / Online (Zero Rent)</option>
+                  <option value="kiosk">Collapsible Kiosk / Street Corner (₹2k-5k rent)</option>
+                  <option value="shop">Retail Shopfront / Alley (₹8k-18k rent)</option>
+                  <option value="commercial">Commercial Unit / Hub (₹20k+ rent)</option>
+                </select>
+              </div>
+
+              {/* Primary Target Audience */}
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--text-secondary)", marginBottom: 6 }}>
+                  Target Audience Catchment
+                </label>
+                <select
+                  value={formData.targetAudience}
+                  onChange={(e) => updateField("targetAudience", e.target.value)}
+                  className="input"
+                  style={{ height: 42, fontSize: 13 }}
+                >
+                  <option value="local_residents">Residential Families & Colonies</option>
+                  <option value="students">College Students & Migrants</option>
+                  <option value="retailers">Local Retailers & B2B Businesses</option>
+                  <option value="transit">Commuters & Transit Passers</option>
+                </select>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* ================= STEP 5: 90-DAY PROFIT ROADMAP ================= */}
-          {step === 5 && (
-            <div style={styles.stepContent}>
-              <div style={styles.stepHeader}>
-                <div style={styles.stepTag}>STEP 05 OF 05 · MASTER ROADMAP</div>
-                <h2 style={styles.stepTitle}>Your 90-Day Day-by-Day Launch & Profit Blueprint</h2>
-                <p style={styles.stepDesc}>
-                  Executing every single milestone ensures you break-even by Day 45 and lock in sustained net monthly profit by Day 90. Click the checkboxes as you complete each task.
-                </p>
+        {/* ================= STEP 3: AI DISCOVERY & MATCH ================= */}
+        {step === 3 && (
+          <div style={{ animation: "fadeIn 0.2s ease-out" }}>
+            <span className="badge badge-ai" style={{ marginBottom: 6 }}>STEP 03 OF 05</span>
+            <h2 style={{ fontSize: 20, fontWeight: 800, margin: "4px 0 2px 0", color: "var(--text-h)" }}>
+              Curated Business Matches for {formData.capitalTier.toUpperCase()} Capital
+            </h2>
+            <p style={{ margin: "0 0 20px 0", fontSize: 13, color: "var(--text-secondary)" }}>
+              Calculated for fast break-even, high margins, and zero dead-stock risk. Select one to generate your blueprint.
+            </p>
+
+            <div style={{ display: "grid", gap: 14 }}>
+              {recommendedBusinesses.map((biz) => {
+                const isSelected = formData.selectedBusinessId === biz.id;
+                return (
+                  <div
+                    key={biz.id}
+                    onClick={() => updateField("selectedBusinessId", biz.id)}
+                    style={{
+                      padding: "18px 22px",
+                      borderRadius: 14,
+                      border: `2px solid ${isSelected ? "var(--accent)" : "var(--border)"}`,
+                      background: isSelected ? "var(--accent-soft)" : "var(--surface-raised)",
+                      cursor: "pointer",
+                      transition: "all 0.18s ease",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 10, marginBottom: 8 }}>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 18 }}>⭐</span>
+                          <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0, color: "var(--text-h)" }}>
+                            {biz.title}
+                          </h3>
+                        </div>
+                        <p style={{ margin: "4px 0 0 0", fontSize: 12.5, color: "var(--text-secondary)" }}>
+                          {biz.tagline}
+                        </p>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <span className="badge" style={{ background: "var(--success-soft)", color: "var(--success)", fontSize: 11 }}>
+                          Profit: {biz.monthlyProfit}/mo
+                        </span>
+                        <span className="badge" style={{ background: "var(--accent-soft)", color: "var(--accent)", fontSize: 11 }}>
+                          Margin: {biz.margin}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10, marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+                      <div>
+                        <small style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", display: "block" }}>Why It Wins</small>
+                        <span style={{ fontSize: 11.5, color: "var(--text)" }}>{biz.whyWins}</span>
+                      </div>
+                      <div>
+                        <small style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", display: "block" }}>Break-Even Horizon</small>
+                        <span style={{ fontSize: 11.5, color: "var(--success)", fontWeight: 700 }}>~{biz.breakevenDays} Days to Profit</span>
+                      </div>
+                      <div>
+                        <small style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", display: "block" }}>Key Equipment</small>
+                        <span style={{ fontSize: 11.5, color: "var(--text-secondary)" }}>{biz.equipment.slice(0, 2).join(", ")}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ================= STEP 4: UNIT ECONOMICS & SUBSIDIES ================= */}
+        {step === 4 && (
+          <div style={{ animation: "fadeIn 0.2s ease-out" }}>
+            <span className="badge badge-ai" style={{ marginBottom: 6 }}>STEP 04 OF 05</span>
+            <h2 style={{ fontSize: 20, fontWeight: 800, margin: "4px 0 2px 0", color: "var(--text-h)" }}>
+              Unit Economics & Subsidy Matching: {activeBusiness.title}
+            </h2>
+            <p style={{ margin: "0 0 20px 0", fontSize: 13, color: "var(--text-secondary)" }}>
+              Financial architecture, operating cost run-rate, and matched government schemes.
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 18 }}>
+              {/* Financial Summary Card */}
+              <div className="card" style={{ padding: 20, borderRadius: 12, background: "var(--surface-raised)" }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 14px 0", color: "var(--text-h)" }}>
+                  📊 Financial Projections
+                </h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                    <span style={{ color: "var(--text-secondary)" }}>Estimated Startup Cost</span>
+                    <strong style={{ color: "var(--text-h)" }}>{activeBusiness.estimatedStartup}</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                    <span style={{ color: "var(--text-secondary)" }}>Gross Profit Margin</span>
+                    <strong style={{ color: "var(--success)" }}>{activeBusiness.margin}</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                    <span style={{ color: "var(--text-secondary)" }}>Target Monthly Net Profit</span>
+                    <strong style={{ color: "var(--accent)" }}>{activeBusiness.monthlyProfit}</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                    <span style={{ color: "var(--text-secondary)" }}>Breakeven Velocity</span>
+                    <strong style={{ color: "var(--violet)" }}>~{activeBusiness.breakevenDays} Days</strong>
+                  </div>
+                </div>
               </div>
 
-              {/* Readiness Score Panel */}
-              <div style={styles.readinessPanel}>
-                <div style={styles.scoreCircle}>
-                  <span style={{ fontSize: "28px", fontWeight: "900", color: "#10B981" }}>94%</span>
-                  <small style={{ fontSize: "9px", color: "var(--muted)" }}>VIABILITY</small>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                    <strong style={{ fontSize: "14px", color: "var(--text-h)" }}>
-                      Execution Progress: {completedTasksCount} / {totalTasksCount} Milestones Done
-                    </strong>
-                    <span style={{ fontSize: "12px", fontWeight: "800", color: "#8B5CF6" }}>
-                      {progressPercentage}% Completed
+              {/* Subsidies & Compliance */}
+              <div className="card" style={{ padding: 20, borderRadius: 12, background: "var(--surface-raised)" }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 14px 0", color: "var(--text-h)" }}>
+                  🏛️ Matched Government Schemes & Licenses
+                </h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div>
+                    <small style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", display: "block" }}>Required Registrations</small>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+                      {activeBusiness.licenses.map((lic, i) => (
+                        <span key={i} className="badge" style={{ background: "var(--surface)", border: "1px solid var(--border)", fontSize: 11 }}>
+                          {lic}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 6 }}>
+                    <small style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", display: "block" }}>Subsidy Route</small>
+                    <span style={{ fontSize: 12.5, color: "var(--cyan)", fontWeight: 600 }}>
+                      PMMY Mudra Shishu/Kishor + PMEGP 25-35% Capital Subsidy
                     </span>
                   </div>
-                  <div style={styles.progressTrack}>
-                    <div style={{ ...styles.progressFill, width: `${progressPercentage}%` }} />
-                  </div>
-                  <div style={{ display: "flex", gap: "14px", marginTop: "8px", flexWrap: "wrap" }}>
-                    <span style={styles.quickStat}>🚀 Venture: <strong>{activeBusiness.title}</strong></span>
-                    <span style={styles.quickStat}>📍 Location: <strong>{formData.city}</strong></span>
-                    <span style={styles.quickStat}>💰 Target Net: <strong>{activeBusiness.monthlyProfit}</strong></span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => window.print()}
-                  style={styles.printBtn}
-                  title="Print or Save PDF"
-                >
-                  🖨️ Print Blueprint
-                </button>
-              </div>
-
-              {/* 3 PHASES TIMELINE */}
-              <div style={styles.phaseTimeline}>
-                {/* PHASE 1: DAYS 1 - 30 */}
-                <div style={styles.phaseCard}>
-                  <div style={styles.phaseHeader}>
-                    <div style={{ ...styles.phaseBadge, background: "rgba(139, 92, 246, 0.18)", color: "#A78BFA" }}>
-                      PHASE 1 · DAYS 1 TO 30
-                    </div>
-                    <h3 style={styles.phaseTitle}>Foundation, Zero-Cost Legal & Pilot Batch</h3>
-                    <p style={styles.phaseDesc}>Setting up bank account, vendor sourcing, and family/beta trials with zero wasted capex.</p>
-                  </div>
-
-                  <div style={styles.taskList}>
-                    {[
-                      { id: "p1_1", days: "Days 1–5", title: "Complete Free Udyam Registration & Open Bank Current Account", desc: "Use Aadhaar & PAN on udyamregistration.gov.in. Zero fee, instant MSME recognition." },
-                      { id: "p1_2", days: "Days 6–10", title: "Shortlist 3 Wholesale Vendors & Order First Sample Stock", desc: "Compare prices across wholesale markets (APMC / local distributors). Negotiate credit for reorders." },
-                      { id: "p1_3", days: "Days 11–15", title: "Set Up WhatsApp Business Catalogue & Payment QR Code", desc: "Add product photos, pricing, business bio, and print standee QR code with zero transaction fee." },
-                      { id: "p1_4", days: "Days 16–20", title: "Workspace & Equipment Inspection Setup", desc: `Assemble core equipment (${activeBusiness.equipment.join(", ")}) and test run under full load.` },
-                      { id: "p1_5", days: "Days 21–25", title: "Trial Run with 20 Friendly Testers", desc: "Deliver your product/service to 20 neighbors or friends. Gather feedback on quality and packaging." },
-                      { id: "p1_6", days: "Days 26–30", title: "Lock Pricing & Prepare Launch Inventory", desc: "Audit direct costs, fix 40-55% gross margin, and stock raw material for opening week." },
-                    ].map((task) => (
-                      <div
-                        key={task.id}
-                        onClick={() => toggleTask(task.id)}
-                        style={{
-                          ...styles.taskRow,
-                          background: completedTasks[task.id] ? "rgba(16, 185, 129, 0.08)" : "var(--surface-soft)",
-                          borderColor: completedTasks[task.id] ? "#10B981" : "var(--border)",
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={!!completedTasks[task.id]}
-                          onChange={() => {}}
-                          style={{ width: "18px", height: "18px", accentColor: "#10B981", cursor: "pointer", marginTop: "2px" }}
-                        />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={styles.taskDays}>{task.days}</span>
-                            <strong style={{ fontSize: "12.5px", color: completedTasks[task.id] ? "var(--text-h)" : "var(--text-h)", textDecoration: completedTasks[task.id] ? "line-through" : "none" }}>
-                              {task.title}
-                            </strong>
-                          </div>
-                          <p style={{ fontSize: "11px", color: "var(--muted)", margin: "3px 0 0 0", lineHeight: 1.4 }}>
-                            {task.desc}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* PHASE 2: DAYS 31 - 60 */}
-                <div style={styles.phaseCard}>
-                  <div style={styles.phaseHeader}>
-                    <div style={{ ...styles.phaseBadge, background: "rgba(56, 189, 248, 0.18)", color: "#38BDF8" }}>
-                      PHASE 2 · DAYS 31 TO 60
-                    </div>
-                    <h3 style={styles.phaseTitle}>The First 100 Paying Customers & Local Marketing</h3>
-                    <p style={styles.phaseDesc}>Transitioning from soft launch to a steady daily stream of walk-ins or orders.</p>
-                  </div>
-
-                  <div style={styles.taskList}>
-                    {[
-                      { id: "p2_1", days: "Days 31–35", title: "Grand Soft Opening with Launch Incentive", desc: "Announce 'Buy 1 Get Free Extra' or 'Flat 20% Opening Special' across local apartment WhatsApp groups." },
-                      { id: "p2_2", days: "Days 36–40", title: "Create & Verify Google Business Profile", desc: "Upload high-res photos, business hours, and place an in-store QR code asking happy customers to review." },
-                      { id: "p2_3", days: "Days 41–45", title: "Targeted Pamphlet & Society Gate Distribution", desc: "Distribute 500 flyers within a 1.5 km radius offering a free trial or first-visit discount code." },
-                      { id: "p2_4", days: "Days 46–50", title: "Reach 50 Unique Paying Transactions", desc: "Track every payment and mobile number to build your direct VIP customer broadcast list." },
-                      { id: "p2_5", days: "Days 51–55", title: "Address Early Bottlenecks & Speed Up Service", desc: "Identify what caused wait times or customer drop-offs and optimize operational speed by 25%." },
-                      { id: "p2_6", days: "Days 56–60", title: "Hit Milestone: First 100 Paying Customers!", desc: "Break-even volume achieved! Operating cashflow now pays for daily stock and rent." },
-                    ].map((task) => (
-                      <div
-                        key={task.id}
-                        onClick={() => toggleTask(task.id)}
-                        style={{
-                          ...styles.taskRow,
-                          background: completedTasks[task.id] ? "rgba(16, 185, 129, 0.08)" : "var(--surface-soft)",
-                          borderColor: completedTasks[task.id] ? "#10B981" : "var(--border)",
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={!!completedTasks[task.id]}
-                          onChange={() => {}}
-                          style={{ width: "18px", height: "18px", accentColor: "#10B981", cursor: "pointer", marginTop: "2px" }}
-                        />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ ...styles.taskDays, background: "rgba(56, 189, 248, 0.15)", color: "#38BDF8" }}>{task.days}</span>
-                            <strong style={{ fontSize: "12.5px", color: "var(--text-h)", textDecoration: completedTasks[task.id] ? "line-through" : "none" }}>
-                              {task.title}
-                            </strong>
-                          </div>
-                          <p style={{ fontSize: "11px", color: "var(--muted)", margin: "3px 0 0 0", lineHeight: 1.4 }}>
-                            {task.desc}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* PHASE 3: DAYS 61 - 90 */}
-                <div style={styles.phaseCard}>
-                  <div style={styles.phaseHeader}>
-                    <div style={{ ...styles.phaseBadge, background: "rgba(16, 185, 129, 0.18)", color: "#10B981" }}>
-                      PHASE 3 · DAYS 61 TO 90
-                    </div>
-                    <h3 style={styles.phaseTitle}>Repeat Sales Engine & Net Monthly Profit Realization</h3>
-                    <p style={styles.phaseDesc}>Slashing supplier cost, creating repeat loops, and taking your first owner profit draw.</p>
-                  </div>
-
-                  <div style={styles.taskList}>
-                    {[
-                      { id: "p3_1", days: "Days 61–65", title: "Launch WhatsApp VIP Loyalty Club", desc: "Offer monthly subscriptions or 'Buy 5 get 6th Free' cards to turn occasional buyers into weekly regulars." },
-                      { id: "p3_2", days: "Days 66–70", title: "Negotiate 8% to 15% Bulk Discount with Suppliers", desc: "Leverage your proven monthly purchase volume to lower raw material cost and expand gross margins." },
-                      { id: "p3_3", days: "Days 71–75", title: "Launch Referral Engine ('Bring a Friend')", desc: "Give existing customers a ₹50 credit for every new paying customer they introduce." },
-                      { id: "p3_4", days: "Days 76–80", title: "Log All Financials in Ami-Vest Finance Hub", desc: "Track exact revenue vs expenses on Ami-Vest to view cashflow trends and reserve ratios." },
-                      { id: "p3_5", days: "Days 81–85", title: "Achieve Target Monthly Net Profit Margin", desc: `Reach steady run-rate of ${activeBusiness.monthlyProfit} with stable unit economics.` },
-                      { id: "p3_6", days: "Days 86–90", title: "Profit Split & Growth Capital Allocation", desc: "Deploy the 50/30/20 formula: 50% owner salary/profit take, 30% inventory reinvestment, 20% marketing." },
-                    ].map((task) => (
-                      <div
-                        key={task.id}
-                        onClick={() => toggleTask(task.id)}
-                        style={{
-                          ...styles.taskRow,
-                          background: completedTasks[task.id] ? "rgba(16, 185, 129, 0.08)" : "var(--surface-soft)",
-                          borderColor: completedTasks[task.id] ? "#10B981" : "var(--border)",
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={!!completedTasks[task.id]}
-                          onChange={() => {}}
-                          style={{ width: "18px", height: "18px", accentColor: "#10B981", cursor: "pointer", marginTop: "2px" }}
-                        />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ ...styles.taskDays, background: "rgba(16, 185, 129, 0.15)", color: "#10B981" }}>{task.days}</span>
-                            <strong style={{ fontSize: "12.5px", color: "var(--text-h)", textDecoration: completedTasks[task.id] ? "line-through" : "none" }}>
-                              {task.title}
-                            </strong>
-                          </div>
-                          <p style={{ fontSize: "11px", color: "var(--muted)", margin: "3px 0 0 0", lineHeight: 1.4 }}>
-                            {task.desc}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Cross-Link Actions to Ami-Vest & Ami-Business */}
-              <div style={styles.actionBanner}>
-                <div>
-                  <h4 style={{ margin: "0 0 4px 0", fontSize: "14px", color: "var(--text-h)" }}>
-                    Ready to Connect Your Tools?
-                  </h4>
-                  <p style={{ margin: 0, fontSize: "11.5px", color: "var(--muted)" }}>
-                    Track your daily launch expenses in Ami-Vest or map competitor density in Ami-Business.
-                  </p>
-                </div>
-                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                  <button
-                    onClick={() => navigate("/")}
-                    style={styles.actionBtnVest}
-                  >
-                    💰 Track Expenses in Ami-Vest
-                  </button>
-                  <button
-                    onClick={() => navigate("/business")}
-                    style={styles.actionBtnBiz}
-                  >
-                    🏪 Check Map in Ami-Business
-                  </button>
-                  <button
-                    onClick={() => setStep(1)}
-                    style={styles.actionBtnReset}
-                  >
-                    🔄 Tweak Parameters
-                  </button>
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ================= STEP 5: 90-DAY BLUEPRINT ================= */}
+        {step === 5 && (
+          <div style={{ animation: "fadeIn 0.2s ease-out" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+              <div>
+                <span className="badge badge-ai" style={{ marginBottom: 6 }}>STEP 05 OF 05 · EXECUTION BLUEPRINT</span>
+                <h2 style={{ fontSize: 20, fontWeight: 800, margin: "4px 0 2px 0", color: "var(--text-h)" }}>
+                  90-Day Roadmap for {activeBusiness.title}
+                </h2>
+                <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>
+                  Tick off each milestone as you progress. Progress is saved automatically.
+                </p>
+              </div>
+
+              {/* Readiness Score Banner */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "8px 16px",
+                  borderRadius: 12,
+                  background: "var(--surface-raised)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <div style={{ fontSize: 18, fontWeight: 900, color: "var(--success)" }}>{progressPercentage}%</div>
+                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                  <strong>{completedTasksCount} / {totalTasksCount}</strong> tasks complete
+                </div>
+              </div>
+            </div>
+
+            {/* Timeline Phases */}
+            <div style={{ display: "grid", gap: 20 }}>
+              {phases.map((phase) => (
+                <div key={phase.phaseNumber} className="card" style={{ padding: 22, borderRadius: 14, border: `1px solid var(--border)` }}>
+                  <div style={{ marginBottom: 14 }}>
+                    <span className="badge" style={{ background: "var(--accent-soft)", color: phase.color, fontSize: 10, fontWeight: 800 }}>
+                      {phase.badge}
+                    </span>
+                    <h3 style={{ fontSize: 16, fontWeight: 800, color: "var(--text-h)", margin: "6px 0 2px 0" }}>
+                      {phase.name}
+                    </h3>
+                    <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary)" }}>
+                      {phase.desc}
+                    </p>
+                  </div>
+
+                  {/* Task List */}
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {phase.tasks.map((task) => {
+                      const isDone = Boolean(completedTasks[task.id]);
+                      return (
+                        <div
+                          key={task.id}
+                          onClick={() => toggleTask(task.id)}
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 12,
+                            padding: "10px 14px",
+                            borderRadius: 10,
+                            border: `1px solid ${isDone ? "rgba(16,185,129,0.3)" : "var(--border)"}`,
+                            background: isDone ? "var(--success-soft)" : "var(--surface-raised)",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isDone}
+                            onChange={() => {}}
+                            style={{ marginTop: 3, cursor: "pointer", accentColor: "var(--success)" }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <span style={{ fontSize: 10, fontWeight: 800, color: "var(--accent)", background: "var(--accent-soft)", padding: "1px 6px", borderRadius: 4 }}>
+                                {task.days}
+                              </span>
+                              <strong style={{ fontSize: 13, color: isDone ? "var(--text-muted)" : "var(--text-h)", textDecoration: isDone ? "line-through" : "none" }}>
+                                {task.title}
+                              </strong>
+                            </div>
+                            <p style={{ margin: "3px 0 0 0", fontSize: 11.5, color: "var(--text-secondary)" }}>
+                              {task.desc}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Bottom Actions */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 22, paddingTop: 18, borderTop: "1px solid var(--border)", flexWrap: "wrap", gap: 12 }}>
+              <button
+                onClick={() => window.print()}
+                className="btn btn-secondary btn-sm"
+                style={{ display: "flex", alignItems: "center", gap: 6 }}
+              >
+                <span>🖨️</span>
+                <span>Print Roadmap</span>
+              </button>
+
+              <button
+                onClick={() => navigate("/chat", { state: { initialQuery: `Help me customize the 90-day launch roadmap for ${activeBusiness.title} in ${formData.city}. How can I accelerate Phase 1 customer acquisition?` } })}
+                className="btn btn-primary"
+                style={{ display: "flex", alignItems: "center", gap: 6 }}
+              >
+                <span>💬</span>
+                <span>Ask Kiro to Customize Blueprint →</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Wizard Footer Navigation */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24, paddingTop: 18, borderTop: "1px solid var(--border)" }}>
+          <button
+            type="button"
+            onClick={() => setStep((s) => Math.max(1, s - 1))}
+            disabled={step === 1}
+            className="btn btn-secondary"
+            style={{ opacity: step === 1 ? 0.4 : 1, cursor: step === 1 ? "not-allowed" : "pointer" }}
+          >
+            ← Back
+          </button>
+
+          {step < 5 ? (
+            <button
+              type="button"
+              onClick={() => setStep((s) => Math.min(5, s + 1))}
+              className="btn btn-primary"
+              style={{ padding: "10px 24px", fontWeight: 700 }}
+            >
+              Continue to Step {step + 1} →
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => navigate("/chat", { state: { initialQuery: `I am executing the 90-day plan for ${activeBusiness.title}. What should my week-1 priorities be?` } })}
+              className="btn btn-primary"
+              style={{ padding: "10px 24px", fontWeight: 700 }}
+            >
+              Start Day 1 Execution with Kiro 🚀
+            </button>
           )}
         </div>
       </div>
     </div>
   );
 }
-
-// Inline Styles mapped cleanly to theme variables
-const styles = {
-  page: {
-    minHeight: "100%",
-    background: "transparent",
-    color: "var(--text)",
-    fontFamily: "Inter, system-ui, -apple-system, sans-serif",
-  },
-  container: {
-    maxWidth: "960px",
-    margin: "0 auto",
-    padding: "36px 20px 80px 20px",
-  },
-  heroSection: {
-    textAlign: "center",
-    marginBottom: "32px",
-  },
-  heroTag: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "4px 14px",
-    borderRadius: "999px",
-    background: "rgba(139, 92, 246, 0.15)",
-    border: "1px solid rgba(139, 92, 246, 0.35)",
-    color: "#A78BFA",
-    fontSize: "11px",
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: "0.8px",
-    marginBottom: "12px",
-  },
-  pulseDot: {
-    width: "7px",
-    height: "7px",
-    borderRadius: "50%",
-    background: "#A78BFA",
-    boxShadow: "0 0 8px #A78BFA",
-  },
-  heroTitle: {
-    fontSize: "clamp(26px, 4vw, 36px)",
-    fontWeight: "900",
-    color: "var(--text-h)",
-    margin: "0 0 10px 0",
-    letterSpacing: "-0.5px",
-  },
-  heroSub: {
-    maxWidth: "680px",
-    margin: "0 auto",
-    fontSize: "13.5px",
-    color: "var(--muted)",
-    lineHeight: "1.6",
-  },
-  badgeRow: {
-    display: "flex",
-    justifyContent: "center",
-    gap: "8px",
-    flexWrap: "wrap",
-    marginTop: "16px",
-  },
-  pillBadge: {
-    fontSize: "11px",
-    fontWeight: "600",
-    padding: "4px 10px",
-    borderRadius: "999px",
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    color: "var(--text)",
-  },
-
-  // Stepper
-  stepperWrapper: {
-    position: "relative",
-    marginBottom: "28px",
-  },
-  stepperTrack: {
-    position: "absolute",
-    top: "18px",
-    left: "40px",
-    right: "40px",
-    height: "3px",
-    background: "var(--border)",
-    zIndex: 1,
-  },
-  stepperFill: {
-    height: "100%",
-    background: "linear-gradient(90deg, #8B5CF6, #6366F1, #10B981)",
-    transition: "width 0.4s ease",
-  },
-  stepperButtons: {
-    position: "relative",
-    zIndex: 2,
-    display: "flex",
-    justifyContent: "space-between",
-  },
-  stepBtn: {
-    background: "none",
-    border: "none",
-    cursor: "pointer",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "6px",
-    padding: "0 4px",
-  },
-  stepCircle: {
-    width: "36px",
-    height: "36px",
-    borderRadius: "50%",
-    display: "grid",
-    placeItems: "center",
-    fontSize: "13px",
-    fontWeight: "800",
-    border: "2px solid var(--border)",
-    transition: "all 0.3s ease",
-  },
-  stepLabel: {
-    fontSize: "11px",
-    fontWeight: "700",
-    textAlign: "center",
-  },
-
-  // Card
-  card: {
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    borderRadius: "20px",
-    padding: "32px",
-    boxShadow: "var(--shadow-md)",
-    backdropFilter: "blur(16px)",
-  },
-  stepContent: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-  },
-  stepHeader: {
-    borderBottom: "1px solid var(--border)",
-    paddingBottom: "18px",
-  },
-  stepTag: {
-    fontSize: "10px",
-    fontWeight: "800",
-    color: "#8B5CF6",
-    letterSpacing: "1px",
-  },
-  stepTitle: {
-    fontSize: "20px",
-    fontWeight: "800",
-    color: "var(--text-h)",
-    margin: "4px 0 6px 0",
-  },
-  stepDesc: {
-    fontSize: "12px",
-    color: "var(--muted)",
-    lineHeight: "1.5",
-    margin: 0,
-  },
-
-  // Form Fields
-  formGrid: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "18px",
-  },
-  fieldFull: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-  },
-  fieldHalf: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px",
-  },
-  label: {
-    fontSize: "12px",
-    fontWeight: "700",
-    color: "var(--text-h)",
-  },
-  input: {
-    width: "100%",
-    padding: "10px 14px",
-    borderRadius: "10px",
-    background: "var(--surface-soft)",
-    border: "1px solid var(--border)",
-    color: "var(--text)",
-    fontSize: "12.5px",
-    outline: "none",
-    boxSizing: "border-box",
-  },
-  textarea: {
-    width: "100%",
-    padding: "10px 14px",
-    borderRadius: "10px",
-    background: "var(--surface-soft)",
-    border: "1px solid var(--border)",
-    color: "var(--text)",
-    fontSize: "12.5px",
-    outline: "none",
-    resize: "vertical",
-    boxSizing: "border-box",
-  },
-  select: {
-    width: "100%",
-    padding: "10px 14px",
-    borderRadius: "10px",
-    background: "var(--surface-soft)",
-    border: "1px solid var(--border)",
-    color: "var(--text)",
-    fontSize: "12.5px",
-    outline: "none",
-    cursor: "pointer",
-    boxSizing: "border-box",
-  },
-
-  choiceGrid2: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-    gap: "10px",
-  },
-  choiceCard: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "12px",
-    padding: "14px",
-    borderRadius: "12px",
-    border: "1px solid var(--border)",
-    cursor: "pointer",
-    textAlign: "left",
-    transition: "all 0.2s ease",
-  },
-  choiceCardMini: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "12px",
-    borderRadius: "10px",
-    border: "1px solid var(--border)",
-    cursor: "pointer",
-    fontSize: "12px",
-    fontWeight: "700",
-    color: "var(--text-h)",
-    transition: "all 0.2s ease",
-  },
-
-  capitalGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: "10px",
-  },
-  capCard: {
-    padding: "14px",
-    borderRadius: "12px",
-    border: "1px solid var(--border)",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-  },
-  capHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  capBadge: {
-    fontSize: "9.5px",
-    fontWeight: "800",
-    padding: "2px 7px",
-    borderRadius: "999px",
-  },
-
-  buttonGroup3: {
-    display: "flex",
-    gap: "6px",
-  },
-  segmentedBtn: {
-    flex: 1,
-    padding: "9px 8px",
-    borderRadius: "9px",
-    border: "1px solid var(--border)",
-    fontSize: "11px",
-    fontWeight: "800",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-  },
-
-  spaceGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: "10px",
-  },
-  spaceCard: {
-    padding: "14px",
-    borderRadius: "12px",
-    border: "1px solid var(--border)",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-  },
-
-  // Opportunities
-  opportunityList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "14px",
-  },
-  opportunityCard: {
-    padding: "18px",
-    borderRadius: "14px",
-    border: "1px solid var(--border)",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-  },
-  opportunityHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: "12px",
-  },
-  selectedPill: {
-    fontSize: "9.5px",
-    fontWeight: "800",
-    color: "#A78BFA",
-    background: "rgba(139, 92, 246, 0.2)",
-    padding: "2px 6px",
-    borderRadius: "999px",
-    letterSpacing: "0.5px",
-  },
-  metricRow: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-    gap: "8px",
-    margin: "14px 0",
-  },
-  metricBox: {
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    borderRadius: "9px",
-    padding: "8px 10px",
-  },
-  metricLabel: {
-    display: "block",
-    fontSize: "9.5px",
-    color: "var(--muted)",
-  },
-  metricVal: {
-    display: "block",
-    fontSize: "13px",
-    color: "var(--text-h)",
-    marginTop: "2px",
-  },
-  whyWinsBox: {
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    borderRadius: "9px",
-    padding: "10px 12px",
-  },
-  equipmentChip: {
-    fontSize: "10px",
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    padding: "3px 8px",
-    borderRadius: "6px",
-    color: "var(--text)",
-  },
-
-  // Step 4
-  highlightBanner: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "16px 20px",
-    borderRadius: "14px",
-    background: "linear-gradient(135deg, #4F46E5, #7C3AED)",
-    color: "#fff",
-    boxShadow: "0 8px 24px rgba(124, 58, 237, 0.25)",
-  },
-  grid2Col: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-    gap: "16px",
-  },
-  subCard: {
-    background: "var(--surface-soft)",
-    border: "1px solid var(--border)",
-    borderRadius: "14px",
-    padding: "18px",
-  },
-  subCardTitle: {
-    margin: "0 0 14px 0",
-    fontSize: "13.5px",
-    color: "var(--text-h)",
-  },
-  financeList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  },
-  financeItem: {
-    display: "flex",
-    justifyContent: "space-between",
-    fontSize: "11.5px",
-    color: "var(--text)",
-  },
-  schemeList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-  },
-  schemeItem: {
-    display: "flex",
-    gap: "10px",
-  },
-  schemeIcon: {
-    fontSize: "20px",
-    flexShrink: 0,
-  },
-
-  // Step 5
-  readinessPanel: {
-    display: "flex",
-    alignItems: "center",
-    gap: "20px",
-    padding: "18px 22px",
-    background: "var(--surface-soft)",
-    border: "1px solid var(--border)",
-    borderRadius: "16px",
-    flexWrap: "wrap",
-  },
-  scoreCircle: {
-    width: "75px",
-    height: "75px",
-    borderRadius: "50%",
-    background: "rgba(16, 185, 129, 0.15)",
-    border: "2px solid #10B981",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  progressTrack: {
-    width: "100%",
-    height: "7px",
-    background: "var(--border)",
-    borderRadius: "999px",
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    background: "linear-gradient(90deg, #8B5CF6, #10B981)",
-    borderRadius: "999px",
-    transition: "width 0.3s ease",
-  },
-  quickStat: {
-    fontSize: "11px",
-    color: "var(--muted)",
-  },
-  printBtn: {
-    padding: "8px 14px",
-    borderRadius: "10px",
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    color: "var(--text-h)",
-    fontSize: "11.5px",
-    fontWeight: "700",
-    cursor: "pointer",
-  },
-
-  // Phase Timeline
-  phaseTimeline: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-    marginTop: "10px",
-  },
-  phaseCard: {
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    borderRadius: "16px",
-    padding: "20px",
-  },
-  phaseHeader: {
-    marginBottom: "14px",
-  },
-  phaseBadge: {
-    display: "inline-block",
-    fontSize: "10px",
-    fontWeight: "800",
-    padding: "3px 8px",
-    borderRadius: "999px",
-    letterSpacing: "0.8px",
-    marginBottom: "4px",
-  },
-  phaseTitle: {
-    fontSize: "15px",
-    fontWeight: "800",
-    color: "var(--text-h)",
-    margin: "2px 0 4px 0",
-  },
-  phaseDesc: {
-    fontSize: "11.5px",
-    color: "var(--muted)",
-    margin: 0,
-  },
-  taskList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  },
-  taskRow: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "12px",
-    padding: "10px 12px",
-    borderRadius: "10px",
-    border: "1px solid var(--border)",
-    cursor: "pointer",
-    transition: "all 0.15s ease",
-  },
-  taskDays: {
-    fontSize: "9.5px",
-    fontWeight: "800",
-    padding: "2px 6px",
-    borderRadius: "5px",
-    background: "rgba(139, 92, 246, 0.15)",
-    color: "#A78BFA",
-  },
-
-  actionBanner: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "18px 20px",
-    background: "var(--surface-soft)",
-    border: "1px solid var(--border)",
-    borderRadius: "14px",
-    gap: "14px",
-    flexWrap: "wrap",
-    marginTop: "10px",
-  },
-  actionBtnVest: {
-    padding: "8px 14px",
-    borderRadius: "9px",
-    background: "linear-gradient(135deg, var(--primary), var(--blue))",
-    border: "none",
-    color: "#fff",
-    fontSize: "11.5px",
-    fontWeight: "700",
-    cursor: "pointer",
-  },
-  actionBtnBiz: {
-    padding: "8px 14px",
-    borderRadius: "9px",
-    background: "rgba(16, 185, 129, 0.18)",
-    border: "1px solid #10B981",
-    color: "#10B981",
-    fontSize: "11.5px",
-    fontWeight: "700",
-    cursor: "pointer",
-  },
-  actionBtnReset: {
-    padding: "8px 14px",
-    borderRadius: "9px",
-    background: "var(--surface)",
-    border: "1px solid var(--border)",
-    color: "var(--muted)",
-    fontSize: "11.5px",
-    fontWeight: "600",
-    cursor: "pointer",
-  },
-
-  // Footer Navigation
-  wizardFooter: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderTop: "1px solid var(--border)",
-    paddingTop: "18px",
-    marginTop: "10px",
-  },
-  primaryNextBtn: {
-    padding: "11px 22px",
-    borderRadius: "11px",
-    background: "linear-gradient(135deg, #8B5CF6, #6366F1)",
-    border: "none",
-    color: "#FFFFFF",
-    fontSize: "12.5px",
-    fontWeight: "800",
-    cursor: "pointer",
-    boxShadow: "0 4px 14px rgba(139, 92, 246, 0.35)",
-    transition: "all 0.18s ease",
-  },
-  secondaryBackBtn: {
-    padding: "10px 18px",
-    borderRadius: "10px",
-    background: "var(--surface-soft)",
-    border: "1px solid var(--border)",
-    color: "var(--text-h)",
-    fontSize: "12px",
-    fontWeight: "700",
-    cursor: "pointer",
-  },
-};

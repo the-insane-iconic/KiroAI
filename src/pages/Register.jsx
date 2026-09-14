@@ -1,7 +1,4 @@
-import React from "react";
-import Login from "./Login";
-
+import { Navigate } from "react-router-dom";
 export default function Register() {
-  // Render the unified next-gen auth experience
-  return <Login defaultTab="signup" />;
+  return <Navigate to="/login" replace />;
 }

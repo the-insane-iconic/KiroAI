@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { KiroContextBar, KiroFAB } from "../components/cards/KiroContext";
 
 const API_URL =
   import.meta.env.VITE_API_URL || "http://127.0.0.1:5001";
@@ -394,6 +395,7 @@ function Dashboard({ transactions, setTransactions }) {
       <div className="av-grid"></div>
 
       <div className="av-content">
+        <KiroContextBar pageName="Finance Dashboard" seedQuery="Analyze my overall income, spending, and budget limits" />
         <section className="av-hero">
           <div className="av-hero-copy">
             <div className="av-eyebrow av-eyebrow-light">

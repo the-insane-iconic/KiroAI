@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   loginWithEmail,
   registerWithEmail,
@@ -7,6 +7,7 @@ import {
   resetPassword,
   isFirebaseConfigured,
 } from "../services/firebase";
+import { useTheme } from "../context/ThemeContext";
 
 const API_URL = (
   import.meta.env.VITE_BACKEND_URL?.trim() ||
@@ -18,10 +19,28 @@ const API_URL = (
     : "/api")
 ).replace(/\/$/, "");
 
-export default function Login({ defaultTab = "login" }) {
-  const navigate = useNavigate();
+// ── Google "G" Logo ───────────────────────────────────────────────────────────
+function GoogleIcon() {
+  return (
+    <svg width={18} height={18} viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+    </svg>
+  );
+}
 
-  const [activeTab, setActiveTab] = useState(defaultTab); // "login" | "signup" | "reset"
+export default function Login() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
+
+  // Read tab parameter from URL query (e.g. /login?tab=signup)
+  const queryParams = new URLSearchParams(location.search);
+  const initialTab = queryParams.get("tab") === "signup" ? "signup" : "login";
+
+  const [tab, setTab] = useState(initialTab); // "login" | "signup" | "reset"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -29,92 +48,137 @@ export default function Login({ defaultTab = "login" }) {
   const [rememberMe, setRememberMe] = useState(true);
 
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
-  const [legalModal, setLegalModal] = useState(null);
+  const [success, setSuccess] = useState("");
+  const [legalModal, setLegalModal] = useState(null); // "terms" | "privacy" | null
 
-  // Clear notifications on tab switch
   useEffect(() => {
     setError("");
-    setSuccessMsg("");
-  }, [activeTab]);
+    setSuccess("");
+  }, [tab]);
 
-  /* =========================================================
-     FIREBASE EMAIL / PASSWORD SIGN-IN
-     ========================================================= */
-  const handleEmailLogin = async (e) => {
+  // ── Session persistence ───────────────────────────────────────────────────
+  function saveUser(user) {
+    const data = {
+      uid: user.uid || "usr_" + Date.now(),
+      name: user.displayName || name || user.email?.split("@")[0] || "User",
+      email: user.email,
+      photo: user.photoURL || null,
+    };
+    localStorage.setItem("user", JSON.stringify(data));
+    if (user.uid) localStorage.setItem("user_id", String(user.uid));
+  }
+
+  // ── Quick 1-Click Admin Demo Login ─────────────────────────────────────────
+  const handleAdminBypass = () => {
+    saveUser({
+      uid: "1",
+      displayName: "Admin",
+      email: "admin@kiro.ai",
+    });
+    // Async background session ping
+    fetch(`${API_URL}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "admin", password: "admin" }),
+      credentials: "include",
+    }).catch(() => {});
+    navigate("/");
+  };
+
+  // ── Email Auth (Login / Signup / Reset) ────────────────────────────────────
+  const handleEmailAuth = async (e) => {
     e.preventDefault();
     setError("");
-    setSuccessMsg("");
+    setSuccess("");
 
-    if (!email.trim() || !password) {
-      setError("Please fill in both email and password.");
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      setError("Please enter your email or username.");
+      return;
+    }
+
+    if (tab === "reset") {
+      setLoading(true);
+      try {
+        if (isFirebaseConfigured()) {
+          await resetPassword(cleanEmail);
+        }
+        setSuccess(`Password reset email dispatched to ${cleanEmail}. Check your inbox.`);
+      } catch (err) {
+        setError(err.message || "Unable to send reset instructions.");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    if (!password) {
+      setError("Please enter your password.");
+      return;
+    }
+
+    if (tab === "signup" && !name.trim()) {
+      setError("Please enter your full name.");
+      return;
+    }
+
+    // ── Built-in Admin Bypass Check ─────────────────────────────────────────
+    const lowerUser = cleanEmail.toLowerCase();
+    if (
+      (lowerUser === "admin" || lowerUser === "admin@admin.com" || lowerUser === "admin@kiro.ai") &&
+      password === "admin"
+    ) {
+      handleAdminBypass();
       return;
     }
 
     setLoading(true);
 
     try {
-      if (isFirebaseConfigured()) {
-        const userCred = await loginWithEmail(email.trim(), password);
-        const fbUser = userCred.user;
-
-        const userData = {
-          email: fbUser.email,
-          name: fbUser.displayName || fbUser.email?.split("@")[0] || "User",
-          uid: fbUser.uid,
-          photoURL: fbUser.photoURL || null,
-        };
-
-        localStorage.setItem("user", JSON.stringify(userData));
-        localStorage.setItem("user_id", fbUser.uid);
-
-        // Optional sync with backend
-        try {
-          await fetch(`${API_URL}/login`, {
+      if (tab === "signup") {
+        if (isFirebaseConfigured()) {
+          const cred = await registerWithEmail(cleanEmail, password, name.trim());
+          saveUser({ ...cred.user, displayName: name.trim() });
+        } else {
+          const res = await fetch(`${API_URL}/api/auth/register`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ email: fbUser.email, password }),
+            body: JSON.stringify({ email: cleanEmail, password, name: name.trim() }),
           });
-        } catch {
-          // Backend sync optional
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || "Registration failed. Try again.");
+          saveUser({ uid: data.user_id, displayName: name.trim(), email: cleanEmail });
         }
-
-        navigate("/");
       } else {
-        // Direct backend fallback
-        const response = await fetch(`${API_URL}/login`, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim(), password }),
-        });
-
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok || !data.success) {
-          throw new Error(data.message || data.error || "Invalid email or password.");
+        // Sign In
+        if (isFirebaseConfigured()) {
+          const cred = await loginWithEmail(cleanEmail, password);
+          saveUser(cred.user);
+        } else {
+          const res = await fetch(`${API_URL}/api/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: cleanEmail, password }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || "Invalid credentials. Please verify your email and password.");
+          saveUser({ uid: data.user_id, displayName: data.name, email: cleanEmail });
         }
-
-        const userData = data.user || {
-          email: email.trim(),
-          name: data.name || email.split("@")[0],
-          uid: data.user_id || "usr_" + Date.now(),
-        };
-
-        localStorage.setItem("user", JSON.stringify(userData));
-        if (data.user_id) localStorage.setItem("user_id", String(data.user_id));
-
-        navigate("/");
       }
+      navigate("/");
     } catch (err) {
-      console.error("LOGIN ERROR:", err);
-      let msg = err.message || "Unable to sign in. Please verify your credentials.";
-      if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password" || err.code === "auth/user-not-found") {
-        msg = "Incorrect email or password. Please try again.";
+      console.error("AUTH ERROR:", err);
+      let msg = err.message || "Authentication failed.";
+      if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+        msg = "Incorrect email or password. You can also use the 1-Click Demo.";
+      } else if (err.code === "auth/email-already-in-use") {
+        msg = "An account with this email already exists. Please sign in.";
+      } else if (err.code === "auth/weak-password") {
+        msg = "Password must be at least 6 characters.";
       } else if (err.code === "auth/too-many-requests") {
-        msg = "Account access temporarily restricted due to failed attempts. Please reset password.";
+        msg = "Access temporarily locked due to multiple attempts. Please try again shortly or reset password.";
       }
       setError(msg);
     } finally {
@@ -122,244 +186,66 @@ export default function Login({ defaultTab = "login" }) {
     }
   };
 
-  /* =========================================================
-     FIREBASE SIGN-UP
-     ========================================================= */
-  const handleSignUp = async (e) => {
-    e.preventDefault();
+  // ── Google SSO ────────────────────────────────────────────────────────────
+  const handleGoogleSignIn = async () => {
     setError("");
-    setSuccessMsg("");
-
-    if (!name.trim() || !email.trim() || !password) {
-      setError("Please complete all fields to create your account.");
-      return;
-    }
-
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
-      return;
-    }
-
-    setLoading(true);
-
+    setGoogleLoading(true);
     try {
-      if (isFirebaseConfigured()) {
-        const userCred = await registerWithEmail(email.trim(), password, name.trim());
-        const fbUser = userCred.user;
-
-        const userData = {
-          email: fbUser.email,
-          name: name.trim(),
-          uid: fbUser.uid,
-          photoURL: null,
-        };
-
-        localStorage.setItem("user", JSON.stringify(userData));
-        localStorage.setItem("user_id", fbUser.uid);
-
-        try {
-          await fetch(`${API_URL}/register`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ name: name.trim(), email: email.trim(), password, termsAccepted: true }),
-          });
-        } catch {
-          // Backend registration optional
-        }
-
-        navigate("/");
-      } else {
-        const response = await fetch(`${API_URL}/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            name: name.trim(),
-            email: email.trim(),
-            password,
-            termsAccepted: true,
-          }),
-        });
-
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok || !data.success) {
-          throw new Error(data.message || data.error || "Unable to create account.");
-        }
-
-        const userData = {
-          name: name.trim(),
-          email: email.trim(),
-          uid: data.user_id || "usr_" + Date.now(),
-        };
-        localStorage.setItem("user", JSON.stringify(userData));
-        localStorage.setItem("user_id", String(userData.uid));
-
-        navigate("/");
+      if (!isFirebaseConfigured()) {
+        throw new Error("Google Sign-In is initializing. You can use 1-Click Demo or Email login.");
       }
+      const cred = await loginWithGoogle();
+      saveUser(cred.user);
+      navigate("/");
     } catch (err) {
-      console.error("SIGNUP ERROR:", err);
-      let msg = err.message || "Failed to create account.";
-      if (err.code === "auth/email-already-in-use") {
-        msg = "This email is already registered. Please sign in instead.";
-      }
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* =========================================================
-     FIREBASE GOOGLE 1-CLICK AUTH
-     ========================================================= */
-  const handleGoogleAuth = async () => {
-    setError("");
-    setSuccessMsg("");
-    setLoading(true);
-
-    try {
-      if (isFirebaseConfigured()) {
-        const result = await loginWithGoogle();
-        const fbUser = result.user;
-
-        const userData = {
-          email: fbUser.email,
-          name: fbUser.displayName || fbUser.email?.split("@")[0] || "User",
-          uid: fbUser.uid,
-          photoURL: fbUser.photoURL || null,
-        };
-
-        localStorage.setItem("user", JSON.stringify(userData));
-        localStorage.setItem("user_id", fbUser.uid);
-
-        try {
-          await fetch(`${API_URL}/google-login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ email: fbUser.email, name: fbUser.displayName, uid: fbUser.uid }),
-          });
-        } catch {
-          // Backend sync optional
-        }
-
-        navigate("/");
-      } else {
-        // Fallback demo user
-        const demoUser = {
-          email: "founder@bizzai.io",
-          name: "Founder",
-          uid: "demo_user_01",
-        };
-        localStorage.setItem("user", JSON.stringify(demoUser));
-        localStorage.setItem("user_id", "demo_user_01");
-        navigate("/");
-      }
-    } catch (err) {
-      console.error("GOOGLE AUTH ERROR:", err);
-      if (err.code === "auth/popup-closed-by-user") {
-        setError("Sign-in cancelled.");
-      } else {
-        setError(err.message || "Google authentication failed.");
+      if (err.code !== "auth/popup-closed-by-user") {
+        setError(err.message || "Google sign-in could not be completed.");
       }
     } finally {
-      setLoading(false);
-    }
-  };
-
-  /* =========================================================
-     PASSWORD RESET EMAIL
-     ========================================================= */
-  const handlePasswordReset = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccessMsg("");
-
-    if (!email.trim()) {
-      setError("Please enter your registered email address.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      if (isFirebaseConfigured()) {
-        await resetPassword(email.trim());
-      }
-      setSuccessMsg(`A password reset link has been dispatched to ${email.trim()}.`);
-    } catch (err) {
-      console.error("RESET ERROR:", err);
-      setError(err.message || "Failed to send reset email.");
-    } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
   };
 
   return (
     <div className="login-viewport">
-      {/* Background Ambience Mesh */}
-      <div className="glow-mesh-1" />
-      <div className="glow-mesh-2" />
-      <div className="grid-overlay" />
+      {/* Dynamic Ambient Background Glows */}
+      <div className="ambient-orb-1" />
+      <div className="ambient-orb-2" />
 
-      <div className="login-wrapper">
-        {/* =========================================================
+      <div className="login-card-container">
+        {/* ===================================================================
             LEFT COLUMN: IMMERSIVE PRODUCT SHOWCASE (DESKTOP)
-            ========================================================= */}
+            =================================================================== */}
         <div className="showcase-pane">
           <div className="showcase-top">
-            <div className="brand-badge">
-              <div className="brand-logo-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M12 2L2 7L12 12L22 7L12 2Z"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M2 17L12 22L22 17"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M2 12L12 17L22 12"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+            <div className="showcase-brand" onClick={() => navigate("/landing")}>
+              <div className="brand-logo-box">
+                <span className="brand-logo-letter">K</span>
               </div>
               <div className="brand-text">
-                <span className="brand-name">BizzAI</span>
-                <span className="brand-tag">Intelligence Platform</span>
+                <span className="brand-name">Kiro AI</span>
+                <span className="brand-tag">Platform 2.0</span>
               </div>
             </div>
 
-            <div className="status-indicator">
-              <span className="pulse-dot" />
-              <span>AI Engine Live · Supabase 17</span>
+            <div className="showcase-status">
+              <span className="live-pulse" />
+              <span>Gemini & Groq Neural Core</span>
             </div>
           </div>
 
           <div className="showcase-content">
             <h1 className="showcase-title">
-              The Next-Gen Financial &amp; Business{" "}
-              <span className="gradient-text">Co-Pilot.</span>
+              Autonomous Intelligence for Wealth &amp; Business{" "}
+              <span className="showcase-gradient">Growth.</span>
             </h1>
-            <p className="showcase-sub">
-              Empowering founders, SMEs, and investors with real-time financial
-              insights, market feasibility models, and automated compliance.
+            <p className="showcase-desc">
+              From real-time cashflow optimization and automated tax exemptions to 90-day startup feasibility and instant MUDRA &amp; PMEGP loan matching.
             </p>
 
-            {/* Interactive Live Mini-Widget */}
-            <div className="telemetry-card">
-              <div className="telemetry-header">
+            {/* Live Financial Telemetry Card */}
+            <div className="telemetry-box">
+              <div className="telemetry-head">
                 <div className="telemetry-pill">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
@@ -370,547 +256,464 @@ export default function Login({ defaultTab = "login" }) {
                 <span className="telemetry-val">+34.8% ROI</span>
               </div>
 
-              <div className="telemetry-body">
-                <div className="metric-row">
-                  <div>
-                    <span className="metric-label">Forecast Accuracy</span>
-                    <span className="metric-num">99.4%</span>
-                  </div>
-                  <div>
-                    <span className="metric-label">RBI Compliance</span>
-                    <span className="metric-num active">Verified</span>
-                  </div>
-                  <div>
-                    <span className="metric-label">Neural Engine</span>
-                    <span className="metric-num">Groq Llama 3.3</span>
-                  </div>
+              <div className="telemetry-metrics-grid">
+                <div className="tm-item">
+                  <span className="tm-label">Forecast Accuracy</span>
+                  <span className="tm-num">99.4%</span>
                 </div>
-
-                <div className="sparkline-bar">
-                  <div className="sparkline-fill" style={{ width: "82%" }} />
+                <div className="tm-item">
+                  <span className="tm-label">RBI Compliance</span>
+                  <span className="tm-num text-success">Verified</span>
+                </div>
+                <div className="tm-item">
+                  <span className="tm-label">Tax Saved</span>
+                  <span className="tm-num text-accent">₹46,200</span>
                 </div>
               </div>
+
+              <div className="telemetry-bar">
+                <div className="telemetry-fill" style={{ width: "84%" }} />
+              </div>
+            </div>
+
+            {/* Founder Testimonial Snippet */}
+            <div className="showcase-quote-card">
+              <div className="sq-stars">★★★★★</div>
+              <p className="sq-text">
+                "Kiro AI pre-approved our ₹10L MSME subsidy loan and automated our entire quarterly tax planning. An absolute game-changer."
+              </p>
+              <span className="sq-author">— Ananya K., Founder at TerraOrganics</span>
             </div>
           </div>
 
           <div className="showcase-footer">
-            <div className="feature-badges">
-              <span className="feature-item">
+            <div className="showcase-trust-items">
+              <span className="trust-item">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 </svg>
                 Bank-Grade AES 256
               </span>
-              <span className="feature-item">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                </svg>
-                Zero-Latency Sync
-              </span>
-              <span className="feature-item">
+              <span className="trust-item">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="10" />
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
-                24/7 Co-Pilot
+                Zero Data Sharing
+              </span>
+              <span className="trust-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                </svg>
+                Real-Time Sync
               </span>
             </div>
           </div>
         </div>
 
-        {/* =========================================================
-            RIGHT COLUMN: ULTRA-REFINED GLASSMORPHIC LOGIN CARD
-            ========================================================= */}
+        {/* ===================================================================
+            RIGHT COLUMN: AUTHENTICATION FORM PANE
+            =================================================================== */}
         <div className="auth-pane">
-          <div className="auth-card">
-            {/* Mobile Brand Header */}
-            <div className="mobile-brand-head">
-              <div className="brand-logo-icon small">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M12 2L2 7L12 12L22 7L12 2Z" />
-                  <path d="M2 17L12 22L22 17" />
-                  <path d="M2 12L12 17L22 12" />
-                </svg>
-              </div>
-              <h2>BizzAI</h2>
+          {/* Top navigation row */}
+          <div className="auth-top-nav">
+            <button onClick={() => navigate("/landing")} className="back-link-btn" title="Back to Landing Page">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+              <span>Back to Landing</span>
+            </button>
+
+            <button onClick={toggleTheme} className="theme-toggle-btn-small" title="Toggle theme">
+              {theme === "light" ? "🌙" : "☀️"}
+            </button>
+          </div>
+
+          {/* Mobile brand header (visible on < 960px) */}
+          <div className="mobile-brand-head">
+            <div className="brand-logo-box small">
+              <span className="brand-logo-letter">K</span>
             </div>
-
-            {/* Top Navigation Tabs */}
-            <div className="tab-pill-container">
-              <button
-                type="button"
-                className={`tab-pill ${activeTab === "login" ? "active" : ""}`}
-                onClick={() => setActiveTab("login")}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                className={`tab-pill ${activeTab === "signup" ? "active" : ""}`}
-                onClick={() => setActiveTab("signup")}
-              >
-                Create Account
-              </button>
+            <div>
+              <div className="brand-name" style={{ fontSize: 16 }}>Kiro AI</div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Financial &amp; Business Intelligence</div>
             </div>
+          </div>
 
-            {/* Header Text */}
-            <div className="auth-card-head">
-              <h2 className="auth-heading">
-                {activeTab === "login" && "Welcome Back"}
-                {activeTab === "signup" && "Start Your Journey"}
-                {activeTab === "reset" && "Reset Your Password"}
-              </h2>
-              <p className="auth-subtitle">
-                {activeTab === "login" && "Access your AI launchpad & financial intelligence suite."}
-                {activeTab === "signup" && "Join thousands of founders making data-backed decisions."}
-                {activeTab === "reset" && "Enter your email to receive an instant recovery link."}
-              </p>
+          {/* Tab Switcher */}
+          <div className="auth-tabs">
+            <button
+              className={`auth-tab-btn ${tab === "login" ? "active" : ""}`}
+              onClick={() => setTab("login")}
+            >
+              Sign In
+            </button>
+            <button
+              className={`auth-tab-btn ${tab === "signup" ? "active" : ""}`}
+              onClick={() => setTab("signup")}
+            >
+              Create Account
+            </button>
+            <button
+              className={`auth-tab-btn ${tab === "reset" ? "active" : ""}`}
+              onClick={() => setTab("reset")}
+            >
+              Reset
+            </button>
+          </div>
+
+          {/* Title and Subtitle */}
+          <div className="auth-header">
+            <h2 className="auth-title">
+              {tab === "login" && "Welcome back"}
+              {tab === "signup" && "Start your journey"}
+              {tab === "reset" && "Reset your password"}
+            </h2>
+            <p className="auth-subtitle">
+              {tab === "login" && "Sign in to access your wealth models and business co-pilot."}
+              {tab === "signup" && "Join over 45,000 founders and investors using Kiro AI."}
+              {tab === "reset" && "Enter your email to receive recovery instructions."}
+            </p>
+          </div>
+
+          {/* Error and Success Banners */}
+          {error && (
+            <div className="auth-alert error">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>{error}</span>
             </div>
+          )}
 
-            {/* Notifications */}
-            {error && (
-              <div className="alert-box error">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-                <span>{error}</span>
-              </div>
-            )}
+          {success && (
+            <div className="auth-alert success">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              <span>{success}</span>
+            </div>
+          )}
 
-            {successMsg && (
-              <div className="alert-box success">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-                <span>{successMsg}</span>
-              </div>
-            )}
-
-            {/* Social 1-Click Google Sign-In */}
-            {activeTab !== "reset" && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleGoogleAuth}
-                  disabled={loading}
-                  className="google-btn"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" className="google-icon">
-                    <path
-                      fill="#4285F4"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                    />
-                  </svg>
-                  <span>Continue with Google</span>
-                </button>
-
-                <div className="or-separator">
-                  <div className="sep-line" />
-                  <span className="sep-text">OR EMAIL</span>
-                  <div className="sep-line" />
-                </div>
-              </>
-            )}
-
-            {/* FORM 1: LOGIN */}
-            {activeTab === "login" && (
-              <form onSubmit={handleEmailLogin} className="auth-form">
-                <div className="input-group">
-                  <label className="input-label">Email Address</label>
-                  <div className="input-field-wrap">
-                    <svg className="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect width="20" height="16" x="2" y="4" rx="2" />
-                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+          {/* Form */}
+          <form onSubmit={handleEmailAuth} className="auth-form">
+            {tab === "signup" && (
+              <div className="form-group">
+                <label className="form-label">Full Name</label>
+                <div className="input-wrap">
+                  <span className="input-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
                     </svg>
-                    <input
-                      type="email"
-                      className="text-input"
-                      placeholder="founder@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      autoComplete="email"
-                      required
-                    />
-                  </div>
+                  </span>
+                  <input
+                    id="auth-name-input"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. John Doe"
+                    className="auth-input"
+                    required
+                  />
                 </div>
+              </div>
+            )}
 
-                <div className="input-group">
-                  <div className="label-row">
-                    <label className="input-label">Password</label>
+            <div className="form-group">
+              <label className="form-label">
+                {tab === "reset" ? "Email Address" : "Email or Username"}
+              </label>
+              <div className="input-wrap">
+                <span className="input-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
+                  </svg>
+                </span>
+                <input
+                  id="auth-email-input"
+                  type={tab === "reset" ? "email" : "text"}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={tab === "reset" ? "name@company.com" : "admin or you@example.com"}
+                  className="auth-input"
+                  required
+                />
+              </div>
+            </div>
+
+            {tab !== "reset" && (
+              <div className="form-group">
+                <div className="label-split">
+                  <label className="form-label">Password</label>
+                  {tab === "login" && (
                     <button
                       type="button"
-                      onClick={() => setActiveTab("reset")}
-                      className="link-btn"
+                      onClick={() => setTab("reset")}
+                      className="forgot-link"
                     >
                       Forgot password?
                     </button>
-                  </div>
-                  <div className="input-field-wrap">
-                    <svg className="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                  )}
+                </div>
+                <div className="input-wrap">
+                  <span className="input-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                     </svg>
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      className="text-input"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      autoComplete="current-password"
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="eye-toggle"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                          <line x1="1" y1="1" x2="23" y2="23" />
-                        </svg>
-                      ) : (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="remember-row">
-                  <label className="checkbox-wrap">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                    />
-                    <span className="checkmark" />
-                    <span className="checkbox-label">Keep me signed in</span>
-                  </label>
-                </div>
-
-                <button type="submit" disabled={loading} className="submit-btn">
-                  {loading ? (
-                    <span className="spinner-wrap">
-                      <span className="mini-spinner" /> Signing in...
-                    </span>
-                  ) : (
-                    <>
-                      <span>Sign In to Dashboard</span>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                        <polyline points="12 5 19 12 12 19" />
+                  </span>
+                  <input
+                    id="auth-password-input"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="auth-input with-eye"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="eye-toggle-btn"
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22" />
                       </svg>
-                    </>
-                  )}
-                </button>
-              </form>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
             )}
 
-            {/* FORM 2: SIGN UP */}
-            {activeTab === "signup" && (
-              <form onSubmit={handleSignUp} className="auth-form">
-                <div className="input-group">
-                  <label className="input-label">Full Name</label>
-                  <div className="input-field-wrap">
-                    <svg className="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
-                    </svg>
-                    <input
-                      type="text"
-                      className="text-input"
-                      placeholder="e.g. Ramesh Sharma"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="input-group">
-                  <label className="input-label">Email Address</label>
-                  <div className="input-field-wrap">
-                    <svg className="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect width="20" height="16" x="2" y="4" rx="2" />
-                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                    </svg>
-                    <input
-                      type="email"
-                      className="text-input"
-                      placeholder="name@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="input-group">
-                  <label className="input-label">Password</label>
-                  <div className="input-field-wrap">
-                    <svg className="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      className="text-input"
-                      placeholder="Min. 6 characters"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="eye-toggle"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                          <line x1="1" y1="1" x2="23" y2="23" />
-                        </svg>
-                      ) : (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <button type="submit" disabled={loading} className="submit-btn">
-                  {loading ? (
-                    <span className="spinner-wrap">
-                      <span className="mini-spinner" /> Creating Account...
-                    </span>
-                  ) : (
-                    <>
-                      <span>Create Free Account</span>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                        <polyline points="12 5 19 12 12 19" />
-                      </svg>
-                    </>
-                  )}
-                </button>
-              </form>
+            {tab === "login" && (
+              <div className="remember-row">
+                <label className="remember-label">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                  />
+                  <span>Keep me signed in</span>
+                </label>
+              </div>
             )}
 
-            {/* FORM 3: PASSWORD RESET */}
-            {activeTab === "reset" && (
-              <form onSubmit={handlePasswordReset} className="auth-form">
-                <div className="input-group">
-                  <label className="input-label">Account Email</label>
-                  <div className="input-field-wrap">
-                    <svg className="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect width="20" height="16" x="2" y="4" rx="2" />
-                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                    </svg>
-                    <input
-                      type="email"
-                      className="text-input"
-                      placeholder="founder@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
+            <button
+              id="auth-submit-btn"
+              type="submit"
+              disabled={loading}
+              className="submit-btn"
+            >
+              {loading ? (
+                <span className="submit-spinner" />
+              ) : tab === "login" ? (
+                "Sign In"
+              ) : tab === "signup" ? (
+                "Create Free Account"
+              ) : (
+                "Send Reset Instructions"
+              )}
+            </button>
 
-                <button type="submit" disabled={loading} className="submit-btn">
-                  {loading ? (
-                    <span className="spinner-wrap">
-                      <span className="mini-spinner" /> Sending Link...
-                    </span>
-                  ) : (
-                    <>
-                      <span>Send Password Reset Link</span>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                        <polyline points="12 5 19 12 12 19" />
-                      </svg>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("login")}
-                  className="back-btn"
-                >
-                  ← Return to Sign In
-                </button>
-              </form>
-            )}
-
-            {/* Footer Legal Agreement */}
-            <div className="card-legal-footer">
-              <p>
-                By accessing BizzAI, you agree to our{" "}
-                <button
-                  type="button"
-                  onClick={() => setLegalModal("terms")}
-                  className="legal-link"
-                >
-                  Terms of Service
-                </button>{" "}
-                and{" "}
-                <button
-                  type="button"
-                  onClick={() => setLegalModal("privacy")}
-                  className="legal-link"
-                >
-                  Privacy Policy
-                </button>
-                .
-              </p>
+            {/* ── FAST 1-CLICK DEMO LOGIN BUTTON ──────────────────────────── */}
+            <div className="demo-bypass-card">
+              <div className="demo-bypass-text">
+                <span className="demo-badge">DEV DEMO</span>
+                <span>Fast test credentials: <strong>admin / admin</strong></span>
+              </div>
+              <button
+                type="button"
+                onClick={handleAdminBypass}
+                className="demo-bypass-btn"
+                title="Log in immediately as Admin"
+              >
+                ⚡ 1-Click Enter
+              </button>
             </div>
+          </form>
+
+          {/* Social Sign-in Divider */}
+          {tab !== "reset" && (
+            <>
+              <div className="auth-divider">
+                <div className="divider-line" />
+                <span className="divider-text">or continue with</span>
+                <div className="divider-line" />
+              </div>
+
+              <button
+                id="google-auth-btn"
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={googleLoading}
+                className="google-sso-btn"
+              >
+                {googleLoading ? (
+                  <span className="submit-spinner" />
+                ) : (
+                  <>
+                    <GoogleIcon />
+                    <span>Continue with Google</span>
+                  </>
+                )}
+              </button>
+            </>
+          )}
+
+          {/* Footer Switcher */}
+          <div className="auth-footer-switcher">
+            {tab === "login" ? (
+              <p>
+                Don't have an account?{" "}
+                <button onClick={() => setTab("signup")} className="switch-link">
+                  Create account
+                </button>
+              </p>
+            ) : tab === "signup" ? (
+              <p>
+                Already have an account?{" "}
+                <button onClick={() => setTab("login")} className="switch-link">
+                  Sign in
+                </button>
+              </p>
+            ) : (
+              <p>
+                Remembered your password?{" "}
+                <button onClick={() => setTab("login")} className="switch-link">
+                  Back to sign in
+                </button>
+              </p>
+            )}
+          </div>
+
+          {/* Legal micro-copy */}
+          <div className="auth-legal-footer">
+            <span>By proceeding, you agree to Kiro AI's </span>
+            <button onClick={() => setLegalModal("terms")} className="legal-btn">
+              Terms
+            </button>
+            <span> and </span>
+            <button onClick={() => setLegalModal("privacy")} className="legal-btn">
+              Privacy Policy
+            </button>
+            <span>.</span>
           </div>
         </div>
       </div>
 
-      {/* =========================================================
-          LEGAL & PRIVACY MODAL
-          ========================================================= */}
+      {/* ── LEGAL MODAL ────────────────────────────────────────────────────── */}
       {legalModal && (
         <div className="legal-modal-backdrop" onClick={() => setLegalModal(null)}>
           <div className="legal-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-top">
               <h3>{legalModal === "terms" ? "Terms of Service" : "Privacy Policy"}</h3>
-              <button onClick={() => setLegalModal(null)} className="close-modal-btn">
-                ✕
-              </button>
+              <button onClick={() => setLegalModal(null)} className="modal-close-btn">×</button>
             </div>
-            <div className="modal-scroll-body">
+            <div className="modal-body">
               {legalModal === "terms" ? (
-                <div>
+                <>
                   <h4>1. Acceptance of Terms</h4>
-                  <p>
-                    By using BizzAI, you gain access to algorithmic business intelligence, cash flow models, and feasibility indicators. All insights are generated for planning and advisory purposes.
-                  </p>
-                  <h4>2. Data Security &amp; Isolation</h4>
-                  <p>
-                    Your records and data points are protected with bank-grade encryption and isolated across secure PostgreSQL instances.
-                  </p>
-                </div>
+                  <p>By accessing Kiro AI, you agree to abide by these terms and applicable Indian and international regulations.</p>
+                  <h4>2. Use of Financial AI</h4>
+                  <p>Kiro AI provides educational and analytical intelligence. All loan eligibility matching, tax recommendations, and business feasibility models should be validated with authorized institutions.</p>
+                  <h4>3. Data Security</h4>
+                  <p>Your data is encrypted using AES-256 protocols. You retain total ownership over your financial records.</p>
+                </>
               ) : (
-                <div>
-                  <h4>1. Privacy First Architecture</h4>
-                  <p>
-                    We never sell, distribute, or broker your personal financial records or business strategies to third-party ad networks.
-                  </p>
-                  <h4>2. Authentication Standards</h4>
-                  <p>
-                    Authentication tokens are verified with cryptographic standards and Firebase security rules.
-                  </p>
-                </div>
+                <>
+                  <h4>1. Data We Collect</h4>
+                  <p>We process only the email, authentication details, and financial parameters you supply to provide personalized models.</p>
+                  <h4>2. Bank-Grade Protection</h4>
+                  <p>Your data is never sold or shared with advertisers. All statement OCR and telemetry analysis is strictly sandboxed.</p>
+                  <h4>3. Data Deletion</h4>
+                  <p>You can request total deletion of your profile and data history at any time from your account settings.</p>
+                </>
               )}
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setLegalModal(null)} className="btn btn-primary btn-sm">
+                Understood
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* =========================================================
-          SCOPED ULTRA-PREMIUM CSS STYLES
-          ========================================================= */}
+      {/* ── CSS STYLES ────────────────────────────────────────────────────── */}
       <style>{`
         .login-viewport {
           min-height: 100vh;
-          width: 100%;
-          background: #060A12;
+          background: var(--bg);
+          color: var(--text);
+          font-family: var(--font);
           display: flex;
           align-items: center;
-          justifyContent: center;
-          padding: 24px;
+          justify-content: center;
+          padding: 24px 16px;
           position: relative;
           overflow: hidden;
-          font-family: Inter, system-ui, -apple-system, sans-serif;
-          color: #F8FAFC;
-          box-sizing: border-box;
         }
 
-        .glow-mesh-1 {
+        /* ── AMBIENT ORBS ── */
+        .ambient-orb-1 {
           position: absolute;
-          width: 650px;
-          height: 650px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(13, 148, 136, 0.18) 0%, rgba(6, 182, 212, 0.08) 40%, transparent 70%);
-          top: -15%;
-          left: -10%;
+          width: 550px;
+          height: 550px;
+          top: -150px;
+          left: -150px;
+          background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
           pointer-events: none;
-          filter: blur(50px);
-          animation: floatPulse 12s ease-in-out infinite alternate;
+          z-index: 0;
         }
 
-        .glow-mesh-2 {
+        .ambient-orb-2 {
           position: absolute;
-          width: 600px;
-          height: 600px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(56, 189, 248, 0.14) 0%, rgba(14, 165, 233, 0.05) 50%, transparent 70%);
-          bottom: -15%;
-          right: -5%;
+          width: 450px;
+          height: 450px;
+          bottom: -150px;
+          right: -150px;
+          background: radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, transparent 70%);
           pointer-events: none;
-          filter: blur(60px);
-          animation: floatPulse 16s ease-in-out infinite alternate-reverse;
+          z-index: 0;
         }
 
-        .grid-overlay {
-          position: absolute;
-          inset: 0;
-          background-image: 
-            linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-          background-size: 48px 48px;
-          pointer-events: none;
-          opacity: 0.8;
-        }
-
-        .login-wrapper {
+        /* ── DUAL PANE CONTAINER ── */
+        .login-card-container {
+          position: relative;
+          z-index: 1;
           width: 100%;
-          max-width: 1140px;
-          min-height: 680px;
+          max-width: 1040px;
+          min-height: 640px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-xl);
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
           display: grid;
           grid-template-columns: 1.15fr 1fr;
-          background: rgba(12, 19, 34, 0.7);
-          backdrop-filter: blur(28px);
-          -webkit-backdrop-filter: blur(28px);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 28px;
-          box-shadow: 0 35px 80px -20px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(13, 148, 136, 0.12);
-          position: relative;
-          z-index: 2;
           overflow: hidden;
         }
 
-        /* SHOWCASE LEFT PANE */
+        /* ── SHOWCASE PANE (LEFT) ── */
         .showcase-pane {
-          padding: 48px;
+          background: var(--bg-secondary);
+          border-right: 1px solid var(--border);
+          padding: 40px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          background: linear-gradient(145deg, rgba(15, 23, 42, 0.75) 0%, rgba(6, 11, 23, 0.95) 100%);
-          border-right: 1px solid rgba(255, 255, 255, 0.06);
           position: relative;
         }
 
@@ -920,28 +723,34 @@ export default function Login({ defaultTab = "login" }) {
           justify-content: space-between;
         }
 
-        .brand-badge {
+        .showcase-brand {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
+          cursor: pointer;
         }
 
-        .brand-logo-icon {
-          width: 44px;
-          height: 44px;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #0D9488 0%, #06B6D4 100%);
+        .brand-logo-box {
+          width: 36px;
+          height: 36px;
+          background: linear-gradient(135deg, var(--accent) 0%, #06b6d4 100%);
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #FFFFFF;
-          box-shadow: 0 8px 24px rgba(13, 148, 136, 0.35);
+          box-shadow: 0 4px 12px var(--accent-soft);
         }
 
-        .brand-logo-icon.small {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
+        .brand-logo-box.small {
+          width: 30px;
+          height: 30px;
+        }
+
+        .brand-logo-letter {
+          color: #ffffff;
+          font-weight: 800;
+          font-size: 19px;
+          line-height: 1;
         }
 
         .brand-text {
@@ -950,183 +759,238 @@ export default function Login({ defaultTab = "login" }) {
         }
 
         .brand-name {
-          font-size: 20px;
-          font-weight: 800;
-          letter-spacing: -0.5px;
-          background: linear-gradient(90deg, #FFFFFF 0%, #E2E8F0 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+          font-size: 17px;
+          font-weight: 700;
+          color: var(--text);
+          letter-spacing: -0.02em;
+          line-height: 1.1;
         }
 
         .brand-tag {
-          font-size: 11px;
-          color: #0D9488;
+          font-size: 10px;
           font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.8px;
+          color: var(--accent);
+          letter-spacing: 0.04em;
         }
 
-        .status-indicator {
+        .showcase-status {
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 6px 12px;
-          background: rgba(13, 148, 136, 0.12);
-          border: 1px solid rgba(13, 148, 136, 0.25);
-          border-radius: 100px;
+          gap: 6px;
+          padding: 4px 10px;
+          border-radius: 99px;
+          background: var(--surface);
+          border: 1px solid var(--border);
           font-size: 11px;
-          color: #2DD4BF;
-          font-weight: 500;
+          font-weight: 600;
+          color: var(--text-secondary);
         }
 
-        .pulse-dot {
-          width: 7px;
-          height: 7px;
+        .live-pulse {
+          width: 6px;
+          height: 6px;
           border-radius: 50%;
-          background: #2DD4BF;
-          box-shadow: 0 0 10px #2DD4BF;
-          animation: blink 2s infinite;
+          background: #10b981;
+          box-shadow: 0 0 6px #10b981;
         }
 
         .showcase-content {
-          margin: 36px 0;
+          margin: 32px 0;
         }
 
         .showcase-title {
-          font-size: 38px;
-          line-height: 1.18;
+          font-size: 26px;
           font-weight: 800;
-          letter-spacing: -1px;
-          margin: 0 0 16px 0;
-          color: #F8FAFC;
+          line-height: 1.25;
+          letter-spacing: -0.02em;
+          color: var(--text);
+          margin-bottom: 12px;
         }
 
-        .gradient-text {
-          background: linear-gradient(90deg, #14B8A6, #2DD4BF, #38BDF8);
+        .showcase-gradient {
+          background: linear-gradient(135deg, var(--accent) 0%, #06b6d4 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
 
-        .showcase-sub {
-          font-size: 14.5px;
-          line-height: 1.6;
-          color: #94A3B8;
-          margin: 0 0 32px 0;
-          max-width: 460px;
+        .showcase-desc {
+          font-size: 14px;
+          color: var(--text-secondary);
+          line-height: 1.55;
+          margin-bottom: 24px;
         }
 
-        /* TELEMETRY CARD */
-        .telemetry-card {
-          background: rgba(15, 23, 42, 0.6);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 18px;
-          padding: 20px;
-          box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.5);
-          position: relative;
-          overflow: hidden;
+        /* ── TELEMETRY BOX ── */
+        .telemetry-box {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          padding: 18px;
+          margin-bottom: 20px;
+          box-shadow: var(--shadow-sm);
         }
 
-        .telemetry-header {
+        .telemetry-head {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 18px;
+          margin-bottom: 14px;
         }
 
         .telemetry-pill {
           display: flex;
           align-items: center;
-          gap: 7px;
-          font-size: 12px;
+          gap: 6px;
+          font-size: 11.5px;
           font-weight: 600;
-          color: #2DD4BF;
+          color: var(--accent);
+          background: var(--accent-soft);
+          padding: 4px 10px;
+          border-radius: 99px;
         }
 
         .telemetry-val {
-          font-size: 13px;
-          font-weight: 700;
-          color: #10B981;
-          background: rgba(16, 185, 129, 0.12);
-          padding: 3px 8px;
-          border-radius: 6px;
+          font-size: 15px;
+          font-weight: 800;
+          color: var(--success);
         }
 
-        .metric-row {
+        .telemetry-metrics-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 12px;
-          margin-bottom: 16px;
+          gap: 8px;
+          margin-bottom: 12px;
         }
 
-        .metric-label {
-          display: block;
-          font-size: 11px;
-          color: #64748B;
-          margin-bottom: 4px;
+        .tm-item {
+          display: flex;
+          flex-direction: column;
         }
 
-        .metric-num {
+        .tm-label {
+          font-size: 10.5px;
+          color: var(--text-muted);
+          margin-bottom: 2px;
+        }
+
+        .tm-num {
           font-size: 14px;
           font-weight: 700;
-          color: #F8FAFC;
+          color: var(--text);
         }
 
-        .metric-num.active {
-          color: #2DD4BF;
-        }
+        .text-success { color: var(--success); }
+        .text-accent { color: var(--accent); }
 
-        .sparkline-bar {
-          width: 100%;
-          height: 6px;
-          background: rgba(255, 255, 255, 0.06);
-          border-radius: 10px;
+        .telemetry-bar {
+          height: 5px;
+          border-radius: 99px;
+          background: var(--border);
           overflow: hidden;
         }
 
-        .sparkline-fill {
+        .telemetry-fill {
           height: 100%;
-          background: linear-gradient(90deg, #0D9488 0%, #38BDF8 100%);
-          border-radius: 10px;
-          box-shadow: 0 0 12px rgba(45, 212, 191, 0.6);
+          background: linear-gradient(90deg, var(--accent) 0%, #06b6d4 100%);
+          border-radius: 99px;
         }
 
-        .showcase-footer {
-          border-top: 1px solid rgba(255, 255, 255, 0.06);
-          padding-top: 20px;
+        /* ── TESTIMONIAL MINI ── */
+        .showcase-quote-card {
+          padding: 14px 16px;
+          border-radius: var(--radius);
+          background: var(--surface);
+          border: 1px solid var(--border);
         }
 
-        .feature-badges {
+        .sq-stars {
+          color: #f59e0b;
+          font-size: 13px;
+          letter-spacing: 2px;
+          margin-bottom: 4px;
+        }
+
+        .sq-text {
+          font-size: 12.5px;
+          line-height: 1.5;
+          color: var(--text-secondary);
+          margin-bottom: 6px;
+          font-style: italic;
+        }
+
+        .sq-author {
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--text-muted);
+        }
+
+        /* ── SHOWCASE FOOTER ── */
+        .showcase-trust-items {
           display: flex;
           align-items: center;
-          gap: 18px;
+          gap: 16px;
           flex-wrap: wrap;
         }
 
-        .feature-item {
+        .trust-item {
           display: flex;
           align-items: center;
-          gap: 6px;
-          font-size: 12px;
-          color: #94A3B8;
+          gap: 5px;
+          font-size: 11.5px;
+          color: var(--text-muted);
           font-weight: 500;
         }
 
-        .feature-item svg {
-          color: #0D9488;
+        /* ── AUTH PANE (RIGHT) ── */
+        .auth-pane {
+          padding: 40px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          background: var(--surface);
         }
 
-        /* AUTH RIGHT PANE */
-        .auth-pane {
-          padding: 48px;
+        .auth-top-nav {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 20px;
+        }
+
+        .back-link-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: none;
+          border: none;
+          color: var(--text-muted);
+          font-size: 12.5px;
+          font-weight: 500;
+          cursor: pointer;
+          padding: 0;
+          transition: color var(--transition);
+        }
+
+        .back-link-btn:hover {
+          color: var(--text);
+        }
+
+        .theme-toggle-btn-small {
+          background: var(--bg-secondary);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          width: 30px;
+          height: 30px;
+          cursor: pointer;
+          font-size: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: rgba(10, 16, 29, 0.5);
+          transition: border-color var(--transition);
         }
 
-        .auth-card {
-          width: 100%;
-          max-width: 390px;
+        .theme-toggle-btn-small:hover {
+          border-color: var(--border-strong);
         }
 
         .mobile-brand-head {
@@ -1136,223 +1000,164 @@ export default function Login({ defaultTab = "login" }) {
           margin-bottom: 20px;
         }
 
-        .mobile-brand-head h2 {
-          margin: 0;
-          font-size: 20px;
-          font-weight: 800;
-          color: #F8FAFC;
-        }
-
-        /* TAB PILLS */
-        .tab-pill-container {
+        .auth-tabs {
           display: flex;
-          background: rgba(15, 23, 42, 0.8);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 12px;
-          padding: 4px;
-          margin-bottom: 24px;
-        }
-
-        .tab-pill {
-          flex: 1;
-          padding: 9px 16px;
-          border: none;
-          background: transparent;
-          color: #94A3B8;
-          font-size: 12.5px;
-          font-weight: 600;
-          border-radius: 9px;
-          cursor: pointer;
-          transition: all 0.22s ease;
-        }
-
-        .tab-pill.active {
-          background: linear-gradient(135deg, #0D9488 0%, #06B6D4 100%);
-          color: #FFFFFF;
-          box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
-        }
-
-        .auth-card-head {
+          background: var(--bg-secondary);
+          padding: 3px;
+          border-radius: var(--radius);
+          border: 1px solid var(--border);
           margin-bottom: 22px;
         }
 
-        .auth-heading {
-          font-size: 24px;
-          font-weight: 800;
-          letter-spacing: -0.4px;
-          color: #F8FAFC;
-          margin: 0 0 6px 0;
+        .auth-tab-btn {
+          flex: 1;
+          padding: 8px 12px;
+          border-radius: calc(var(--radius) - 3px);
+          border: none;
+          background: transparent;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all var(--transition);
+        }
+
+        .auth-tab-btn.active {
+          background: var(--surface);
+          color: var(--text);
+          box-shadow: var(--shadow-sm);
+        }
+
+        .auth-header {
+          margin-bottom: 20px;
+        }
+
+        .auth-title {
+          font-size: 22px;
+          font-weight: 700;
+          color: var(--text);
+          margin-bottom: 6px;
         }
 
         .auth-subtitle {
           font-size: 13px;
-          color: #94A3B8;
-          margin: 0;
-          line-height: 1.45;
+          color: var(--text-secondary);
+          line-height: 1.5;
         }
 
-        /* NOTIFICATIONS */
-        .alert-box {
+        .auth-alert {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 11px 14px;
-          border-radius: 10px;
-          font-size: 12px;
-          margin-bottom: 18px;
-          line-height: 1.4;
+          gap: 8px;
+          padding: 10px 14px;
+          border-radius: var(--radius-sm);
+          font-size: 12.5px;
+          margin-bottom: 16px;
         }
 
-        .alert-box.error {
-          background: rgba(239, 68, 68, 0.12);
-          border: 1px solid rgba(239, 68, 68, 0.25);
-          color: #FCA5A5;
+        .auth-alert.error {
+          background: var(--danger-soft);
+          color: var(--danger);
+          border: 1px solid rgba(217, 48, 37, 0.2);
         }
 
-        .alert-box.success {
-          background: rgba(16, 185, 129, 0.12);
-          border: 1px solid rgba(16, 185, 129, 0.25);
-          color: #6EE7B7;
+        .auth-alert.success {
+          background: var(--success-soft);
+          color: var(--success);
+          border: 1px solid rgba(24, 128, 56, 0.2);
         }
 
-        /* GOOGLE 1-CLICK BTN */
-        .google-btn {
-          width: 100%;
-          padding: 11.5px 16px;
-          background: rgba(30, 41, 59, 0.7);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 12px;
-          color: #F8FAFC;
-          font-size: 13px;
-          font-weight: 600;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          transition: all 0.2s ease;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-        }
-
-        .google-btn:hover:not(:disabled) {
-          background: rgba(51, 65, 85, 0.85);
-          border-color: rgba(255, 255, 255, 0.2);
-          transform: translateY(-1px);
-        }
-
-        .or-separator {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin: 20px 0;
-        }
-
-        .sep-line {
-          flex: 1;
-          height: 1px;
-          background: rgba(255, 255, 255, 0.08);
-        }
-
-        .sep-text {
-          font-size: 10px;
-          font-weight: 700;
-          letter-spacing: 0.8px;
-          color: #64748B;
-        }
-
-        /* FORM CONTROLS */
         .auth-form {
           display: flex;
           flex-direction: column;
-          gap: 15px;
+          gap: 14px;
         }
 
-        .input-group {
+        .form-group {
           display: flex;
           flex-direction: column;
+          gap: 6px;
         }
 
-        .input-label {
-          font-size: 12px;
+        .form-label {
+          font-size: 12.5px;
           font-weight: 600;
-          color: #CBD5E1;
-          margin-bottom: 6px;
+          color: var(--text-secondary);
         }
 
-        .label-row {
+        .label-split {
           display: flex;
-          align-items: center;
           justify-content: space-between;
-          margin-bottom: 6px;
+          align-items: center;
         }
 
-        .link-btn {
+        .forgot-link {
           background: none;
           border: none;
-          color: #2DD4BF;
-          font-size: 11.5px;
-          font-weight: 600;
+          color: var(--accent);
+          font-size: 12px;
+          font-weight: 500;
           cursor: pointer;
           padding: 0;
-          transition: color 0.15s;
         }
 
-        .link-btn:hover {
-          color: #5EEAD4;
+        .forgot-link:hover {
           text-decoration: underline;
         }
 
-        .input-field-wrap {
+        .input-wrap {
           position: relative;
           display: flex;
           align-items: center;
         }
 
-        .field-icon {
+        .input-icon {
           position: absolute;
-          left: 14px;
-          color: #64748B;
+          left: 12px;
+          color: var(--text-muted);
           pointer-events: none;
+          display: flex;
+          align-items: center;
         }
 
-        .text-input {
+        .auth-input {
           width: 100%;
-          padding: 11.5px 42px 11.5px 40px;
-          background: rgba(15, 23, 42, 0.7);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 11px;
-          color: #FFFFFF;
+          padding: 10px 14px 10px 38px;
+          border-radius: var(--radius-sm);
+          border: 1px solid var(--border);
+          background: var(--bg-secondary);
+          color: var(--text);
           font-size: 13.5px;
+          font-family: var(--font);
           outline: none;
-          transition: all 0.2s ease;
-          box-sizing: border-box;
+          transition: all var(--transition);
         }
 
-        .text-input:focus {
-          border-color: #0D9488;
-          box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25);
-          background: rgba(15, 23, 42, 0.95);
+        .auth-input:focus {
+          background: var(--surface);
+          border-color: var(--accent);
+          box-shadow: 0 0 0 3px var(--accent-soft);
         }
 
-        .text-input::placeholder {
-          color: #475569;
+        .auth-input.with-eye {
+          padding-right: 38px;
         }
 
-        .eye-toggle {
+        .eye-toggle-btn {
           position: absolute;
-          right: 12px;
+          right: 10px;
           background: none;
           border: none;
-          color: #64748B;
+          color: var(--text-muted);
           cursor: pointer;
           display: flex;
           align-items: center;
           padding: 4px;
-          transition: color 0.15s;
+          transition: color var(--transition);
         }
 
-        .eye-toggle:hover {
-          color: #CBD5E1;
+        .eye-toggle-btn:hover {
+          color: var(--text);
         }
 
         .remember-row {
@@ -1362,80 +1167,35 @@ export default function Login({ defaultTab = "login" }) {
           margin-top: -2px;
         }
 
-        .checkbox-wrap {
+        .remember-label {
           display: flex;
           align-items: center;
-          position: relative;
+          gap: 8px;
+          font-size: 12.5px;
+          color: var(--text-secondary);
           cursor: pointer;
-          user-select: none;
         }
 
-        .checkbox-wrap input {
-          position: absolute;
-          opacity: 0;
-          cursor: pointer;
-          height: 0;
-          width: 0;
-        }
-
-        .checkmark {
-          height: 16px;
-          width: 16px;
-          background-color: rgba(15, 23, 42, 0.8);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          border-radius: 4px;
-          margin-right: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.15s;
-        }
-
-        .checkbox-wrap input:checked ~ .checkmark {
-          background-color: #0D9488;
-          border-color: #0D9488;
-        }
-
-        .checkbox-wrap input:checked ~ .checkmark:after {
-          content: "";
-          width: 4px;
-          height: 8px;
-          border: solid white;
-          border-width: 0 2px 2px 0;
-          transform: rotate(45deg);
-          margin-bottom: 2px;
-        }
-
-        .checkbox-label {
-          font-size: 12px;
-          color: #94A3B8;
-        }
-
-        /* SUBMIT BUTTON */
         .submit-btn {
           width: 100%;
-          padding: 13px 20px;
-          background: linear-gradient(135deg, #0D9488 0%, #06B6D4 100%);
+          padding: 11px;
+          border-radius: var(--radius-sm);
+          background: var(--accent);
+          color: #ffffff;
+          font-size: 14px;
+          font-weight: 600;
           border: none;
-          border-radius: 12px;
-          color: #FFFFFF;
-          font-size: 13.5px;
-          font-weight: 700;
-          letter-spacing: 0.2px;
           cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 9px;
-          transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
+          transition: background var(--transition);
           margin-top: 4px;
+          box-shadow: 0 4px 12px var(--accent-soft);
         }
 
         .submit-btn:hover:not(:disabled) {
-          transform: translateY(-1.5px);
-          box-shadow: 0 8px 25px rgba(13, 148, 136, 0.55);
-          filter: brightness(1.06);
+          background: var(--accent-hover);
         }
 
         .submit-btn:disabled {
@@ -1443,71 +1203,154 @@ export default function Login({ defaultTab = "login" }) {
           cursor: not-allowed;
         }
 
-        .back-btn {
-          background: none;
-          border: none;
-          color: #94A3B8;
-          font-size: 12.5px;
-          font-weight: 500;
-          cursor: pointer;
-          margin-top: 6px;
-          transition: color 0.15s;
-        }
-
-        .back-btn:hover {
-          color: #F8FAFC;
-        }
-
-        .spinner-wrap {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .mini-spinner {
-          width: 14px;
-          height: 14px;
+        .submit-spinner {
+          width: 16px;
+          height: 16px;
           border: 2px solid rgba(255, 255, 255, 0.3);
-          border-top-color: #FFFFFF;
+          border-top-color: #ffffff;
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
         }
 
-        /* FOOTER LEGAL */
-        .card-legal-footer {
-          margin-top: 24px;
-          padding-top: 16px;
-          border-top: 1px solid rgba(255, 255, 255, 0.06);
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        /* ── FAST 1-CLICK DEMO LOGIN ── */
+        .demo-bypass-card {
+          padding: 10px 14px;
+          border-radius: var(--radius-sm);
+          background: var(--bg-secondary);
+          border: 1px dashed var(--border-strong);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-size: 12px;
+          margin-top: 6px;
+        }
+
+        .demo-bypass-text {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: var(--text-secondary);
+        }
+
+        .demo-badge {
+          font-size: 10px;
+          font-weight: 700;
+          background: var(--border);
+          color: var(--text-secondary);
+          padding: 2px 5px;
+          border-radius: 4px;
+        }
+
+        .demo-bypass-btn {
+          padding: 5px 12px;
+          background: var(--accent);
+          color: #ffffff;
+          border: none;
+          border-radius: var(--radius-sm);
+          font-size: 11.5px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background var(--transition);
+        }
+
+        .demo-bypass-btn:hover {
+          background: var(--accent-hover);
+        }
+
+        /* ── SOCIAL AUTH DIVIDER ── */
+        .auth-divider {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin: 18px 0 14px;
+        }
+
+        .divider-line {
+          flex: 1;
+          height: 1px;
+          background: var(--border);
+        }
+
+        .divider-text {
+          font-size: 11.5px;
+          color: var(--text-muted);
+        }
+
+        .google-sso-btn {
+          width: 100%;
+          padding: 10px;
+          border-radius: var(--radius-sm);
+          border: 1px solid var(--border);
+          background: var(--surface);
+          color: var(--text);
+          font-size: 13.5px;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          transition: all var(--transition);
+        }
+
+        .google-sso-btn:hover:not(:disabled) {
+          background: var(--bg-secondary);
+          border-color: var(--border-strong);
+        }
+
+        /* ── FOOTER SWITCHER ── */
+        .auth-footer-switcher {
           text-align: center;
+          margin-top: 20px;
+          font-size: 13px;
+          color: var(--text-secondary);
         }
 
-        .card-legal-footer p {
-          margin: 0;
-          font-size: 11px;
-          line-height: 1.5;
-          color: #64748B;
-        }
-
-        .legal-link {
+        .switch-link {
           background: none;
           border: none;
-          color: #94A3B8;
-          text-decoration: underline;
-          font-size: 11px;
+          color: var(--accent);
+          font-weight: 600;
           cursor: pointer;
           padding: 0;
         }
 
-        .legal-link:hover {
-          color: #2DD4BF;
+        .switch-link:hover {
+          text-decoration: underline;
         }
 
-        /* MODAL */
+        .auth-legal-footer {
+          text-align: center;
+          margin-top: 14px;
+          font-size: 11.5px;
+          color: var(--text-muted);
+          line-height: 1.4;
+        }
+
+        .legal-btn {
+          background: none;
+          border: none;
+          color: var(--text-secondary);
+          font-size: 11.5px;
+          cursor: pointer;
+          padding: 0;
+          text-decoration: underline;
+        }
+
+        .legal-btn:hover {
+          color: var(--accent);
+        }
+
+        /* ── LEGAL MODAL ── */
         .legal-modal-backdrop {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.75);
-          backdrop-filter: blur(8px);
+          background: rgba(0, 0, 0, 0.65);
+          backdrop-filter: blur(6px);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1518,72 +1361,61 @@ export default function Login({ defaultTab = "login" }) {
         .legal-modal-card {
           width: 100%;
           max-width: 480px;
-          background: #0E1626;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 20px;
-          padding: 28px;
-          box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          padding: 24px;
+          box-shadow: var(--shadow-lg);
         }
 
         .modal-top {
           display: flex;
-          align-items: center;
           justify-content: space-between;
-          margin-bottom: 16px;
+          align-items: center;
+          margin-bottom: 14px;
         }
 
         .modal-top h3 {
-          margin: 0;
-          font-size: 18px;
-          color: #F8FAFC;
+          font-size: 17px;
+          font-weight: 700;
+          color: var(--text);
         }
 
-        .close-modal-btn {
+        .modal-close-btn {
           background: none;
           border: none;
-          color: #94A3B8;
-          font-size: 20px;
+          font-size: 22px;
+          color: var(--text-muted);
           cursor: pointer;
+          line-height: 1;
         }
 
-        .modal-scroll-body {
-          max-height: 340px;
+        .modal-body {
+          max-height: 300px;
           overflow-y: auto;
-          color: #CBD5E1;
           font-size: 13px;
           line-height: 1.6;
+          color: var(--text-secondary);
+          margin-bottom: 18px;
         }
 
-        .modal-scroll-body h4 {
-          color: #2DD4BF;
-          margin: 14px 0 6px 0;
+        .modal-body h4 {
           font-size: 13.5px;
+          font-weight: 600;
+          color: var(--text);
+          margin: 12px 0 4px;
         }
 
-        .modal-scroll-body p {
-          margin: 0 0 10px 0;
-          color: #94A3B8;
+        .modal-footer {
+          display: flex;
+          justify-content: flex-end;
         }
 
-        @keyframes floatPulse {
-          0% { transform: scale(1) translate(0, 0); }
-          100% { transform: scale(1.08) translate(30px, 20px); }
-        }
-
-        @keyframes blink {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(0.85); }
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        /* RESPONSIVE DESIGN */
+        /* ── RESPONSIVE ── */
         @media (max-width: 960px) {
-          .login-wrapper {
+          .login-card-container {
             grid-template-columns: 1fr;
-            max-width: 480px;
+            max-width: 460px;
             min-height: auto;
           }
 
@@ -1592,7 +1424,7 @@ export default function Login({ defaultTab = "login" }) {
           }
 
           .auth-pane {
-            padding: 36px 24px;
+            padding: 32px 24px;
           }
 
           .mobile-brand-head {

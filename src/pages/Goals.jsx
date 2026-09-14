@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { KiroContextBar } from "../components/cards/KiroContext";
 
 /*
  * ============================================================
@@ -760,6 +761,8 @@ export default function Goals({ transactions = [] }) {
         boxSizing: "border-box",
       }}
     >
+      <KiroContextBar pageName="Financial Goals" seedQuery="Review my financial goals and monthly saving contributions" />
+
       {/* ======================================================
           HEADER
       ====================================================== */}

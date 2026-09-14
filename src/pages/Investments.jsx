@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from "react";
+import { KiroContextBar, KiroFAB } from "../components/cards/KiroContext";
 
 // ============================================================================
 // SYSTEM ARCHITECTURE PARAMETERS & REGISTRY (REAL-WORLD SPECIFICATIONS)
@@ -367,6 +368,7 @@ export default function IntegratedWealthDashboard({ transactions = [] }) {
 
   return (
     <div style={{ background: THEME.canvas, color: THEME.textActive, fontFamily: "system-ui, sans-serif", minHeight: "100vh", padding: "40px 16px" }}>
+      <KiroContextBar pageName="Investment Portfolio" seedQuery="Analyze my investment allocation and suggest optimizations based on my risk profile" />
       <div style={{ maxWidth: "1240px", margin: "0 auto" }}>
         
         {/* Module Master Banner Branding */}

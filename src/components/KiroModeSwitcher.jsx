@@ -50,7 +50,7 @@ function modeFromPath(pathname) {
   return "finance";
 }
 
-export default function Kiro AIModeSwitcher() {
+export default function KiroModeSwitcher() {
   const navigate = useNavigate();
   const location = useLocation();
 

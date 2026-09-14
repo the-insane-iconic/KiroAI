@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { KiroContextBar } from "../components/cards/KiroContext";
 
 /* =========================================================
    API CONFIG
@@ -3929,6 +3930,8 @@ export default function LoanAssistant({
         paddingBottom: "100px",
       }}
     >
+      <KiroContextBar pageName="Govt Loans & Subsidies" seedQuery="Check my eligibility for PMEGP, Mudra, and MSME subsidy loans" />
+
       {/* =================================================
           HEADER
       ================================================= */}
